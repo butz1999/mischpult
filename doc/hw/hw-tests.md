@@ -1,0 +1,3 @@
+# HW Tests
+
+Testfälle für Mechanik und Aufbau, mit Verweis auf Anforderungs-IDs.

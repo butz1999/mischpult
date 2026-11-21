@@ -50,7 +50,7 @@ Die System- und Software Entwicklung soll mit agentischer KI passieren. Oberstes
 
 * Jede Anforderung erhält eine eindeutige ID (z.B. `REQ-012`).
 * Design, Code und Tests referenzieren die IDs der Anforderungen, die sie umsetzen bzw. prüfen.
-* Eine Änderung gilt erst als abgeschlossen, wenn die betroffene Dokumentation im selben Commit nachgeführt ist.
+* Eine Änderung gilt erst als abgeschlossen, wenn die betroffene Dokumentation im selben Änderungsschritt nachgeführt ist.
 
 ### Tests
 
@@ -69,13 +69,15 @@ Ebenfalls berücksichtigt werden soll eine sinnvolle Machbarkeitsphase. Namentli
 
 vorgängig ausprobiert und bewiesen werden.
 
-Weitere Machbarkeits-Studien, welche im Rahmen des detaillierten Design Prozesses als nötig erachtet werden, sind explizit hier aufzuführen und später in der Entwicklungs-Dokumentation zu erwähnen.
+Weitere Machbarkeits-Studien, welche im Rahmen des detaillierten Design Prozesses als nötig erachtet werden, sind explizit in [feasibility.md](feasibility.md) aufzuführen und später in der Entwicklungs-Dokumentation zu erwähnen. Dort stehen auch die Abnahmekriterien und Ergebnisse aller Studien.
 
 Eine Machbarkeitsstudie gilt als abgeschlossen, wenn ihre vorgängig festgelegten Abnahmekriterien erfüllt und das Ergebnis dokumentiert ist.
 
+Anforderungen und Machbarkeit entstehen iterativ: Ergebnisse der Machbarkeitsphase (z.B. ob der ESP32-S3 genügt) fliessen in die Anforderungen zurück.
+
 ### Meilensteine
 
-1. Anforderungen erfasst
+1. Anforderungen erfasst (erste Fassung, wird durch die Machbarkeit verfeinert)
 2. Machbarkeitsphase abgeschlossen (inkl. Entscheid ESP32-S3)
 3. System Design abgeschlossen
 4. HW-, EE- und SW Design abgeschlossen, PCB bestellt
@@ -88,16 +90,18 @@ Eine Machbarkeitsstudie gilt als abgeschlossen, wenn ihre vorgängig festgelegte
 
 Folgende Artefakte zur Dokumentation dieses Prozesses sind zu erstellen:
 * Projektbeschreibung (dieses Dokument)
-* Anforderungen
-* System Design
-* HW Design
-* EE Design
-* SW Design
-* Wenn nötig SW Detail Design
+* [Anforderungen](requirements.md)
+* [Machbarkeit](feasibility.md)
+* [System Design](system/system-design.md)
+* [HW Design](hw/hw-design.md)
+* [EE Design](ee/ee-design.md)
+* [SW Design](sw/sw-design.md)
+* Wenn nötig SW Detail Design (`sw/sw-detail-design.md`)
 * Sinnvolle Kommentare im Software Design
-* EE Tests
-* SW Tests
-* System Tests
+* [HW Tests](hw/hw-tests.md)
+* [EE Tests](ee/ee-tests.md)
+* [SW Tests](sw/sw-tests.md)
+* [System Tests](system/system-tests.md)
 
 ### Ablage der Dokumentation
 
