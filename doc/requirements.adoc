@@ -1,0 +1,111 @@
+= Anforderungen
+
+Dieses Dokument überführt den in der xref:project.adoc[Projektbeschreibung] beschriebenen Rahmen in Anforderungen.
+
+== Konventionen
+
+* Es gibt einen Nummernkreis pro Präfix (siehe <<_nachverfolgbarkeit,Nachverfolgbarkeit>>). Einmal vergebene IDs werden nie geändert.
+* Die Anforderungen werden vorerst als Aufzählung pro Kategorie gesammelt, noch ohne IDs. Sie können sich durch die xref:feasibility.adoc[Machbarkeit] noch ändern.
+* Mit Beginn der Spezifikationen erhält jede Anforderung eine Überschrift der Form `=== REQ-xxx Titel`, gefolgt vom Anforderungstext. Die ID ist der Anker: Direkt vor der Überschrift steht `[#REQ-xxx]`.
+* Verweise lauten `+<<REQ-xxx>>+` im selben Dokument bzw. `xref:requirements.adoc#REQ-xxx[]` aus anderen Dokumenten und bleiben bei Titeländerungen gültig.
+
+.Beispiel
+[source,asciidoc]
+----
+[#REQ-001]
+=== REQ-001 Titel
+
+Anforderungstext.
+----
+
+Kategorien sind Zwischenüberschriften (`==`), nach Bedarf.
+
+== Nachverfolgbarkeit
+
+Es gelten folgende Regeln für die Vergabe von Requirement-, Spezifikations- und Test-IDs:
+
+|===
+| Dokumententyp       | ID
+
+| Anforderungen       | REQ-xxx
+| SYS-Spezifikationen | SYS-xxx
+| HW-Spezifikationen  | HW-xxx
+| EE-Spezifikationen  | EE-xxx
+| SW-Spezifikationen  | SW-xxx
+| Testfälle           | TC-xxx
+|===
+
+Die IDs sind streng monoton wachsend. Gelöschte IDs dürfen nicht wiederverwendet werden und werden sinnvoll gekennzeichnet (z.B. mit durchgestrichenem Text). Die Nummern beginnen mit 001, führende Nullen werden dargestellt.
+
+Änderungen am Inhalt ändern die ID nicht. Auf eine Versionierung der IDs wird bewusst verzichtet, die Historie liefert Git.
+
+Die Machbarkeitsstudien in xref:feasibility.adoc[feasibility.adoc] sind von der Nachverfolgbarkeit ausgenommen und erhalten keine IDs.
+
+Die Verbindung von `TC-xxx` zu den Tests im Code wird festgelegt, sobald die ersten Tests geschrieben werden.
+
+=== Traces
+
+Verweise (Traces) stehen immer im nachgelagerten Dokument und zeigen auf das vorgelagerte:
+
+* `SYS`-Spezifikationen nennen die Anforderungen (`REQ-`), die sie umsetzen.
+* `HW`-, `EE`- und `SW`-Spezifikationen nennen Anforderungen (`REQ-`), `SYS`-Spezifikationen oder beides.
+* Testfälle (`TC-`) nennen die Spezifikationen (bei Bedarf auch Anforderungen), die sie prüfen.
+* Code nennt die ID der Spezifikation, die er umsetzt.
+
+Das Anforderungsdokument enthält keine Verweise auf Spezifikationen oder Tests. So muss ein fertiges Dokument nie angepasst werden, wenn später Spezifikationen oder Tests entstehen. Übersichten (Anforderung, Spezifikation, Testfall) und die Abdeckungsprüfung werden aus den Verweisen erzeugt. Die Abdeckung einer Anforderung folgt der Kette, auch über `SYS`-Spezifikationen.
+
+Eine Spezifikation ohne den geforderten Verweis gilt als verwaist (`SYS`: mindestens eine `REQ`, `HW`/`EE`/`SW`: mindestens eine `REQ` oder `SYS`).
+
+== Funktional
+
+* Anbindung an Home-Assistant in beide Richtungen.
+* Minimierung des Stromverbrauchs. Namentlich beim Ansteuern der Motoren. Ein deep-sleep Mode des Prozessors wird nicht gefordert.
+* Update der xref:glossary.adoc#FW[Firmware] im zusammengebauten Betrieb (z.B. xref:glossary.adoc#OTA[OTA]-Update).
+* Dynamische Konfiguration des Mischpults über Home-Assistant.
+* xref:glossary.adoc#Fader[Fader]-Positionen, xref:glossary.adoc#Taster[Taster] und xref:glossary.adoc#Inkrementalgeber[Inkrementalgeber] erscheinen als sinnvolle xref:glossary.adoc#Entity[Entities] in Home-Assistant.
+* Die Sollposition der Fader ist aus Home-Assistant setzbar, die Fader fahren motorisiert dorthin.
+* Die Fader werden mit einem Regler positioniert (z.B. xref:glossary.adoc#PID[PID]). Genauigkeitskriterien und Fahrzeit werden in der Spezifikation festgelegt.
+* Die Fader sollen sanft beschleunigt und verzögert werden.
+* Der Verbindungs-Unterbruch zu Home-Assistant soll auf dem Display visualisiert werden.
+* Bei einem Konflikt der Handverstellung gegen Sollwert aus Home-Assistant hat die Fader-Position die Priorität.
+
+== Hardware
+
+* Microcontroller mit on-board WiFi.
+* Verwendung von 4 motorisierten Fadern.
+* Verwendung von 4 runden Tastern, welche als Licht- oder Audio-xref:glossary.adoc#Preset[Preset] verwendet werden können.
+* Ein Inkrementalgeber mit Druckschalter, welcher für die Menü-Auswahl zuständig ist.
+* Ein hochwertiges Display, welches Grafiken mittels xref:glossary.adoc#LVGL[LVGL] anzeigen kann.
+* Das Display hat einen Touchscreen.
+* Die Display Grösse sollte bei 2-3" Diagonale sein.
+* Die Display Auflösung sollte so gewählt werden, dass feine Linien und ein wertiges Aussehen der Grafiken garantiert ist.
+* Das Display sollte xref:glossary.adoc#FlushMount[Flush-Mount] ermöglichen.
+* Hochwertige Frontplatte aus Aluminium.
+* Zweckmässiges und schönes Holz-Gehäuse.
+* 1 USB-C Port mit zweckmässiger Gehäusedurchführung für 9V xref:glossary.adoc#PD[Power Delivery].
+* Als Controller-Basis dient das ESP32-S3-DEV-KIT-N8R8, sofern es die Software-Anforderungen vollumfänglich abdeckt (Prüfung in der Machbarkeitsphase).
+
+== Elektronik
+
+* Speisung über USB-C xref:glossary.adoc#PD[Power Delivery]-Netzteil.
+* DC-DC-Wandler für 9V auf 3.3V für den Controller.
+* Verwendung von 3.3V kompatiblen Peripherie-Bausteinen.
+* Verwendung von Fadern mit Motorensteuerung.
+* Verwendung eines Inkrementalgebers mit Druckschalter-Funktionalität.
+* Verwendung von einem xref:glossary.adoc#LRA[LRA] und der nötigen Treiber für eine haptische Rückmeldung beim Bedienen des Inkrementalgebers. (z.B. 0% erreicht, 10% Schritte durchfahren, 100% erreicht, Überlauf des Menübandes, Rückmeldungen bei der Bedienung der Fader, etc.)
+* Ansteuerung der DC-Motoren der Fader über geeignete Motortreiber.
+* Das PCB (oder bei Bedarf mehrere) wird mit KiCad entworfen und extern gefertigt.
+* Bauteile stammen wenn möglich aus einer frei verfügbaren KiCad-Bibliothek.
+
+== Software
+
+* Die Software soll mit einer geeigneten technischen Massnahme vermeiden, dass auf dem Display *keine* Einbrenn-Schäden entstehen.
+* Einsatz von xref:glossary.adoc#Zephyr[Zephyr-OS].
+* Einsatz von zweckmässigen Cyber-Security-Massnahmen.
+* Die Software soll mit geeigneten Massnahmen den Stromverbrauch minimieren.
+* Die Software soll ein xref:glossary.adoc#FW[Firmware]-Update über xref:glossary.adoc#OTA[OTA] durchführen können.
+* Wenn möglich werden bestehende Zephyr-Treiber verwendet, keine eigenen Device-Treiber.
+* Der Mikrocontroller deckt die Echtzeit-Aspekte des Reglers, die LAN-Anbindung und die Kommunikation zu Home-Assistant gleichzeitig ab.
+* Cyber-Security soll bei späteren Design-Entscheiden berücksichtigt werden. Begründete Abstriche sind zulässig (Begründung: Heimnetz, Firewall aktiv, minimale Bedrohungslage).
+* Der Build Prozess soll eine xref:glossary.adoc#BOM[Software-BOM] erstellen.
+* Der Sourcecode wird in C++23 geschrieben (Toolchain: Zephyr SDK) und nutzt moderne Features wo sinnvoll, z.B. `std::expected` für die Fehlerbehandlung. Dabei geht die Berücksichtigung von Speicherbedarf und dynamischer Allokation in einem ressourcenbeschränkten System _immer_ vor.

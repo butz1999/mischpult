@@ -1,0 +1,3 @@
+= EE Design
+
+Schaltung, Bauteilwahl und PCB (KiCad). Setzt xref:../system/system-design.adoc[system-design.adoc] um.

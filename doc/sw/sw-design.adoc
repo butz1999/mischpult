@@ -1,0 +1,3 @@
+= SW Design
+
+Software-Architektur auf Zephyr. Setzt xref:../system/system-design.adoc[system-design.adoc] um.

@@ -1,0 +1,3 @@
+= System Design
+
+Systemarchitektur und Schnittstellen, inkl. Anbindung an Home Assistant. Setzt xref:../requirements.adoc[requirements.adoc] um.

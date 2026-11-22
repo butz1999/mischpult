@@ -1,0 +1,3 @@
+= HW Design
+
+Mechanik, Gehäuse und Aufbau. Setzt xref:../system/system-design.adoc[system-design.adoc] um.

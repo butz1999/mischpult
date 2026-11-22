@@ -1,0 +1,49 @@
+= Glossar
+
+Begriffe, Abkürzungen und die bevorzugte Schreibweise in diesem Projekt. Wo mehrere Wörter dasselbe meinen, steht das bevorzugte zuerst.
+
+[[BOM]]BOM:: Bill of Materials, Stückliste. Die Software-BOM listet alle Software-Komponenten eines Builds.
+
+[[DCDC]]DC-DC-Wandler:: Schaltung, die eine Gleichspannung in eine andere umsetzt, hier von 9 V auf 3.3 V.
+
+[[EE]]EE:: Elektronik (Electrical Engineering). Siehe xref:requirements.adoc#_nachverfolgbarkeit[Nachverfolgbarkeit].
+
+[[Entity]]Entity:: Objekt in Home-Assistant, das einen Zustand oder eine Steuerung abbildet, z.B. die Position eines Faders.
+
+[[Fader]]Fader:: Motorisiertes Linear-Potentiometer. Gleichbedeutend verwendet werden Slider und Linear-Potentiometer.
+
+[[FlushMount]]Flush-Mount:: Bündiger Einbau, z.B. des Displays in die Frontplatte.
+
+[[FW]]FW:: Firmware, die Software auf dem Mikrocontroller.
+
+[[HA]]HA:: Home-Assistant, die Heimautomatisierungs-Plattform, an die das Mischpult angebunden wird.
+
+[[HW]]HW:: Hardware im Sinne von Mechanik, Gehäuse und Aufbau. Die Elektronik heisst EE.
+
+[[Inkrementalgeber]]Inkrementalgeber:: Drehgeber mit Druckschalter für die Menü-Auswahl. Gleichbedeutend verwendet werden Drehgeber, Dreh-Encoder und Drehknopf.
+
+[[LRA]]LRA:: Linear Resonant Actuator, Vibrationsaktor, der für haptische Rückmeldungen eingesetzt wird.
+
+[[LVGL]]LVGL:: Light and Versatile Graphics Library, Grafikbibliothek für das Display.
+
+[[OTA]]OTA:: Over-the-Air-Update, Aktualisierung der Firmware über das Funknetz, ohne das Gerät zu öffnen.
+
+[[PD]]PD:: USB Power Delivery, Verfahren, mit dem ein USB-C-Netzteil eine höhere Spannung (hier 9 V) liefert.
+
+[[PID]]PID:: Proportional-Integral-Differential-Regler, hier für die Positionierung der Fader.
+
+[[Preset]]Preset:: Gespeicherte Einstellung, z.B. eine Licht- oder Audio-Szene, die über einen Taster abgerufen wird.
+
+[[REQ]]REQ:: Anforderung (Requirement). Siehe xref:requirements.adoc#_nachverfolgbarkeit[Nachverfolgbarkeit].
+
+[[SW]]SW:: Software.
+
+[[SYS]]SYS:: Systemebene, übergeordnet zu HW, EE und SW.
+
+[[TC]]TC:: Testfall (Test Case).
+
+[[Taster]]Taster:: Runder Taster für den Abruf eines Presets.
+
+[[Trace]]Trace:: Verweis von einem Dokument, Test oder Code auf eine ID im vorgelagerten Artefakt. Siehe xref:requirements.adoc#_nachverfolgbarkeit[Nachverfolgbarkeit].
+
+[[Zephyr]]Zephyr:: Zephyr-OS bzw. Zephyr RTOS, das Echtzeitbetriebssystem der Firmware.
