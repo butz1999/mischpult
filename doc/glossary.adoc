@@ -2,6 +2,8 @@
 
 Begriffe, Abkürzungen und die bevorzugte Schreibweise in diesem Projekt. Wo mehrere Wörter dasselbe meinen, steht das bevorzugte zuerst.
 
+[[Blob]]Blob:: Binärer Treiberteil eines Herstellers ohne Quellcode, hier die WLAN-Teile von Espressif. Siehe xref:sw/toolchain.adoc#_zephyr_version_und_module[Zephyr-Version und Module].
+
 [[BOM]]BOM:: Bill of Materials, Stückliste. Die Software-BOM listet alle Software-Komponenten eines Builds.
 
 [[DCDC]]DC-DC-Wandler:: Schaltung, die eine Gleichspannung in eine andere umsetzt, hier von 9 V auf 3.3 V.

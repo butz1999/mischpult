@@ -106,6 +106,6 @@ Eine Spezifikation ohne den geforderten Verweis gilt als verwaist (`SYS`: mindes
 * Die Software soll ein xref:glossary.adoc#FW[Firmware]-Update über xref:glossary.adoc#OTA[OTA] durchführen können.
 * Wenn möglich werden bestehende Zephyr-Treiber verwendet, keine eigenen Device-Treiber.
 * Der Mikrocontroller deckt die Echtzeit-Aspekte des Reglers, die LAN-Anbindung und die Kommunikation zu Home-Assistant gleichzeitig ab.
-* Cyber-Security soll bei späteren Design-Entscheiden berücksichtigt werden. Begründete Abstriche sind zulässig (Begründung: Heimnetz, Firewall aktiv, minimale Bedrohungslage).
+* Cyber-Security soll bei späteren Design-Entscheiden berücksichtigt werden. Begründete Abstriche sind zulässig (Begründung: Heimnetz, Firewall aktiv, minimale Bedrohungslage). Binäre WLAN-Treiberteile von Espressif (xref:glossary.adoc#Blob[Blobs]) sind als Abstrich akzeptiert (siehe xref:sw/toolchain.adoc#_zephyr_version_und_module[toolchain.adoc]).
 * Der Build Prozess soll eine xref:glossary.adoc#BOM[Software-BOM] erstellen.
 * Der Sourcecode wird in C++23 geschrieben (Toolchain: Zephyr SDK) und nutzt moderne Features wo sinnvoll, z.B. `std::expected` für die Fehlerbehandlung. Dabei geht die Berücksichtigung von Speicherbedarf und dynamischer Allokation in einem ressourcenbeschränkten System _immer_ vor.

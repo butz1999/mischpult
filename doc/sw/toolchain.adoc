@@ -26,7 +26,7 @@ Mindestversionen laut Zephyr Getting Started Guide (Ubuntu 24.04 und neuer). Die
 | Zephyr SDK | 1.0.1 | 1.0.1 | Skript, `~/zephyr-sdk/v1.0.1`
 | Compiler (Ziel) | | GCC 14.3.0 | im SDK, Toolchain `xtensa-espressif_esp32s3_zephyr-elf`
 | `west` | offen | | Skript, in der venv (im Testlauf 1.5.0)
-| Zephyr | offen | | per `west.yml` im Repository festgelegt, noch nicht vorhanden
+| Zephyr | `v4.4.2` | | festgelegt, siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>. Die `west.yml` und der Download fehlen noch
 | `usbipd-win` | offen | nicht geprüft | Windows-Seite, manuell
 |===
 
@@ -110,8 +110,22 @@ Noch offen und nicht Teil des Skripts, entsteht in der xref:../feasibility.adoc[
 
 * Zephyr-Workspace anlegen (`west init`, `west update`). Braucht die `west.yml` dieses Repositorys.
 * Zephyr-Python-Abhängigkeiten installieren (`west packages pip --install`) und `west zephyr-export`. Beides laut Zephyr Getting Started Guide, noch nicht ausgeführt.
-* Binäre Treiberblobs des ESP32 (z.B. für WLAN): ob und wie sie nötig sind, ist zu klären.
+* Binäre Treiberblobs des ESP32 für WLAN holen (`west blobs fetch hal_espressif`), siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>.
 * USB-Zugriff auf das DevKit unter WSL (`usbipd-win` auf Windows).
+
+== Zephyr-Version und Module
+
+Entschieden, aber noch nicht umgesetzt (die `west.yml` ist noch nicht geschrieben, nichts davon wurde gebaut):
+
+* *Version:* Zephyr `v4.4.2`, ein Release-Tag und nicht `main`. Laut dem https://github.com/zephyrproject-rtos/sdk-ng/wiki/Zephyr-Version-Compatibility[SDK-Kompatibilitäts-Wiki] gehört SDK 1.0.x zu Zephyr 4.4.x. `v4.4.2` ist der letzte Patch dieser Linie (Stand 2026-11-23, per `git ls-remote` geprüft). `v4.5.0` existiert bereits, das passende SDK 1.1.x noch nicht. Ein Wechsel ist ein Tag-Wechsel in der `west.yml`, sobald es erscheint.
+* *Einbindung:* Das Repository ist das Manifest-Repository (`west.yml` im Repository, Zephyr per `import`). Damit `west update` nicht über 60 Module lädt, begrenzt eine `name-allowlist` die Module.
+* *Startmenge der Module:* `hal_espressif` (Treiber, WLAN, Blobs), `hal_xtensa` (Xtensa-Kern), `lvgl` (Display), `mbedtls` (TLS), `mcuboot` (Bootloader für OTA). Das ist eine Annahme. Der erste Build zeigt, was fehlt. Weitere Module (z.B. `littlefs`, `hostap`) kommen erst dazu, wenn eine Studie sie braucht.
+* *Binärblobs:* Der WLAN-Stack des ESP32-S3 braucht binäre Teile von Espressif. Sie sind akzeptiert, mit diesen Regeln:
+** Die Blobs werden nie ins Repository eingecheckt, nur per `west blobs fetch hal_espressif` im Workspace geholt.
+** Sie erscheinen in der Software-BOM mit Version, Herkunft und Lizenz. Die Lizenz ist noch nicht geprüft.
+** Sie sind ein dokumentierter Abstrich bei der Cyber-Security. Sicherheitskorrekturen kommen nur von Espressif, ein neuer Stand wird per OTA eingespielt.
+** Wird der Blob unhaltbar (Hersteller stellt Pflege ein, schwere ungepatchte Lücke), ist die Folge ein anderer Controller. Software und Fachlogik sind dank Devicetree und hardwareunabhängiger Logik übertragbar (Annahme), das PCB nicht. Deshalb muss die Machbarkeit vor der PCB-Bestellung belegen, dass WLAN, LVGL und Regler gleichzeitig laufen, siehe xref:../feasibility.adoc[Machbarkeit].
+* *Boardname:* vermutlich `esp32s3_devkitc` (nicht im Zephyr-Quellbaum geprüft). Laut Doku gibt es Snippets für PSRAM. Bei Octal-PSRAM sind die GPIOs 35 bis 37 intern belegt (Quelle: Espressif, nicht geprüft). Das ist für die Pin-Planung des PCB relevant.
 
 == C++
 
@@ -129,6 +143,7 @@ Entwurf, noch nicht geprüft. Die Befehle werden bestätigt, sobald der Workspac
 west build -b <board> <app>
 west twister -p native_sim -T tests
 west flash
+west blobs fetch hal_espressif   # WLAN-Blobs, nach west update
 ----
 
 == Software-BOM

@@ -1,3 +1,27 @@
 = Machbarkeit
 
 Machbarkeitsstudien mit Abnahmekriterien und Ergebnissen. Siehe xref:project.adoc[project.adoc].
+
+== Reihenfolge
+
+Vorhanden ist bisher nur das ESP32-S3-DevKit. Die Studien laufen in dieser Reihenfolge:
+
+. *Vorstufe (keine Studie):* Hello-World-Build für `native_sim` und für das DevKit. Belegt Boardname, C++23-Kconfig und Flashen unter WSL.
+. *Home-Assistant-Anbindung.* Braucht nur das DevKit und WLAN. Diese Studie ist ein Go/No-Go für den Controller: Läuft der ESP32-S3 nicht mit Home-Assistant, wird nichts für die weiteren Studien bestellt.
+. *Hardware für die Machbarkeit bestellen (ToDo, nur nach bestandener Home-Assistant-Studie).* Das nicht vergessen, die Lieferzeit bestimmt den weiteren Ablauf. Es gilt die Beschaffungsregel unten. Die Liste ist noch zu erstellen. Infrage kommen Fader mit Motor, Motortreiber, Display, Inkrementalgeber und LRA mit Treiber, die Auswahl steht in xref:hw/hw-design.adoc[hw-design.adoc].
+. *LVGL-Display.*
+. *Fader-Motor und Regler.* Der Regler wird zuerst auf `native_sim` gegen ein Streckenmodell entworfen, danach mit Hardware getestet.
+. *LRA.*
+. *Gleichzeitiger Betrieb* von WLAN, LVGL und Regler, vor der PCB-Bestellung.
+
+== Offene Punkte
+
+* *Protokoll zu Home-Assistant:* Offen ist, ob MQTT, die ESPHome-Native-API oder die Home-Assistant-WebSocket-API verwendet wird. Annahme, nicht recherchiert: Zephyr bringt MQTT mit, die anderen beiden müssten selbst gebaut werden. Wird in der Home-Assistant-Studie entschieden und danach in den Anforderungen und im System Design nachgeführt.
+* *Abnahmekriterien der Studien:* Für keine Studie festgelegt. Als Nächstes die Home-Assistant-Studie. Dafür braucht es eine erreichbare Home-Assistant-Instanz, ob und wie sie bei dir läuft, ist nicht geklärt.
+
+== Entscheide und Randbedingungen
+
+* *Binärblobs für WLAN:* Der ESP32-S3 braucht binäre Treiberteile von Espressif. Sie sind unter den Regeln in xref:sw/toolchain.adoc#_zephyr_version_und_module[toolchain.adoc] akzeptiert.
+* *Beschaffung: Verfügbarkeit vor Preis.* Verzögerungen in der Hardware-Beschaffung sollen die Studien nicht bremsen. Lieber mehr ausgeben als auf Hardware warten, aber mit Mass. Was "mit Mass" heisst, ist nicht beziffert und wird bei der Bestellung entschieden. Das gilt für die Teile der Machbarkeit.
+* *Rest-Risiko des Go:* Die bestandene Home-Assistant-Studie schliesst nicht aus, dass der ESP32-S3 später beim gleichzeitigen Betrieb scheitert. Dann wäre ein anderer Controller nötig. Dass die bestellten Teile (Fader, Display) dabei weiter nutzbar bleiben, ist eine Annahme.
+* *Gleichzeitiger Betrieb vor der PCB-Bestellung:* Die Studien müssen belegen, dass WLAN, LVGL und der Fader-Regler gleichzeitig auf dem ESP32-S3 laufen, insbesondere dass der Regler bei aktivem WLAN seine Zeitanforderungen hält. Sonst droht ein Wechsel des Controllers und damit ein neues PCB. Die genauen Abnahmekriterien stehen noch aus.
