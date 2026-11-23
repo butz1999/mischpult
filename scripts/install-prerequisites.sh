@@ -7,7 +7,7 @@
 #
 #   1. System packages (apt, needs sudo)
 #   2. Python virtual environment with west in <workspace>/.venv
-#   3. Zephyr SDK in ~/zephyr-sdk-<version> (user level, no sudo)
+#   3. Zephyr SDK in ~/zephyr-sdk/v<version> (user level, no sudo)
 #
 # Not part of this script: creating the Zephyr workspace (west init/update), which
 # needs the west.yml of this repository, and usbipd-win on the Windows side (WSL).
@@ -17,7 +17,7 @@
 # Environment overrides:
 #   ZEPHYR_WS               workspace root, holds .venv (default: ~/git/mischpult-workspace)
 #   ZEPHYR_SDK_VERSION      SDK version (default: 1.0.1)
-#   ZEPHYR_SDK_DIR          SDK install dir (default: ~/zephyr-sdk-<version>)
+#   ZEPHYR_SDK_DIR          SDK install dir (default: ~/zephyr-sdk/v<version>)
 #   ZEPHYR_SDK_TOOLCHAINS   space separated GNU toolchains (default: xtensa-espressif_esp32s3_zephyr-elf)
 #   WEST_VERSION            pin west to this version (default: latest)
 
@@ -25,7 +25,7 @@ set -euo pipefail
 
 : "${ZEPHYR_WS:=$HOME/git/mischpult-workspace}"
 : "${ZEPHYR_SDK_VERSION:=1.0.1}"
-: "${ZEPHYR_SDK_DIR:=$HOME/zephyr-sdk-${ZEPHYR_SDK_VERSION}}"
+: "${ZEPHYR_SDK_DIR:=$HOME/zephyr-sdk/v${ZEPHYR_SDK_VERSION}}"
 : "${ZEPHYR_SDK_TOOLCHAINS:=xtensa-espressif_esp32s3_zephyr-elf}"
 : "${WEST_VERSION:=}"
 

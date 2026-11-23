@@ -23,7 +23,7 @@ Mindestversionen laut Zephyr Getting Started Guide (Ubuntu 24.04 und neuer). Die
 | GCC (Host) mit Multilib | | 13.3.0 | apt (`gcc`, `gcc-multilib`, `g++-multilib`), für `native_sim`
 | `clang-format` | | 18.1.3 | apt
 | Weitere apt-Pakete | | | `gperf`, `ccache`, `dfu-util`, `wget`, `curl`, `ca-certificates`, `xz-utils`, `file`, `make`, `libsdl2-dev`, `libmagic1`, `python3-tk`
-| Zephyr SDK | 1.0.1 | 1.0.1 | Skript, `~/zephyr-sdk-1.0.1`
+| Zephyr SDK | 1.0.1 | 1.0.1 | Skript, `~/zephyr-sdk/v1.0.1`
 | Compiler (Ziel) | | GCC 14.3.0 | im SDK, Toolchain `xtensa-espressif_esp32s3_zephyr-elf`
 | `west` | offen | | Skript, in der venv (im Testlauf 1.5.0)
 | Zephyr | offen | | per `west.yml` im Repository festgelegt, noch nicht vorhanden
@@ -46,7 +46,7 @@ Wo etwas installiert wird, folgt einer Regel: *Wer sich die Komponente teilt und
 | Die Abhängigkeiten gehören zur Zephyr-Version im Workspace. Systemweites `pip` ist unter Ubuntu 24.04 ohnehin gesperrt (PEP 668) und mischt Projekte. Zephyr selbst nutzt dieselbe Konvention (`.venv` in der Workspace-Wurzel).
 
 | Zephyr SDK
-| benutzerweit, pro Version ein Ordner. Der genaue Ort ist noch offen, bisher `~/zephyr-sdk-<version>`.
+| benutzerweit, pro Version ein Ordner unter `~/zephyr-sdk/`, z.B. `~/zephyr-sdk/v1.0.1`.
 | Gross, projektunabhängig und nach Version getrennt, so können mehrere Versionen nebeneinander liegen. Braucht kein `sudo`. `setup.sh -c` registriert es unter `~/.cmake/packages`, dort findet Zephyr es.
 
 | Zephyr-Quellen und Module
@@ -65,12 +65,13 @@ Weitere Regeln:
 * *Kein `sudo pip`* und kein `--break-system-packages`.
 * *Alles im Linux-Dateisystem von WSL* (unter `~`), nicht unter `/mnt/c`. Dort ist der Dateizugriff langsam und die Dateirechte stimmen nicht. Das Skript lehnt Pfade unter `/mnt` ab.
 * *Keine Änderung der Shell-Konfiguration.* Das Skript schreibt nicht in `~/.bashrc`. Die venv wird bewusst per `source` aktiviert.
+* *SDK verschieben:* `setup.sh -c` speichert den absoluten Pfad unter `~/.cmake/packages/Zephyr-sdk/`. Nach einem Umzug muss es erneut laufen (Skript: vorher `.setup-done` im SDK-Ordner löschen), und der Eintrag zum alten Pfad ist von Hand zu entfernen.
 * *Windows-Seite getrennt:* `usbipd-win` (USB-Zugriff für das DevKit) wird manuell installiert.
 
 Gesamtstruktur nach dem Setup:
 
 ----
-~/zephyr-sdk-1.0.1/        Zephyr SDK (benutzerweit, Ort noch offen)
+~/zephyr-sdk/v1.0.1/    Zephyr SDK (benutzerweit, pro Version ein Ordner)
 ~/git/mischpult-workspace/ Workspace
 ├── .venv/                 Python-Umgebung mit west
 ├── .west/
@@ -78,7 +79,7 @@ Gesamtstruktur nach dem Setup:
 └── mischpult/             dieses Repository (enthält west.yml)
 ----
 
-NOTE: Das Repository wird vom bisherigen Ort `~/git/mischpult` nach `~/git/mischpult-workspace/mischpult` verschoben. Der Workspace-Ordner ist selbst kein Git-Repository. `west init -l` macht den übergeordneten Ordner des Repositorys zum Workspace, deshalb braucht das Repository einen eigenen Workspace-Ordner.
+NOTE: Das Repository liegt in `~/git/mischpult-workspace/mischpult`. Der Workspace-Ordner ist selbst kein Git-Repository. `west init -l` macht den übergeordneten Ordner des Repositorys zum Workspace, deshalb braucht das Repository einen eigenen Workspace-Ordner.
 
 == Setup
 
