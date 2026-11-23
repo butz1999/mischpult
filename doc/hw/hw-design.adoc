@@ -1,3 +1,19 @@
 = HW Design
 
 Mechanik, Gehäuse und Aufbau. Setzt xref:../system/system-design.adoc[system-design.adoc] um.
+
+== Komponenten Liste
+
+Lose Sammlung von schon bekannten / ausgesuchten Komponenten:
+
+=== Mouser
+
+* https://www.mouser.ch/de/ProductDetail/Bourns/PSM01-081A-103B2?qs=MAZTpT1IVl8bvIPPcNHmoQ%3D%3D[Potentiometer]
+* https://www.mouser.ch/de/ProductDetail/Bourns/PEC11R-4325F-S0012?qs=Zq5ylnUbLm4xKJFZnkQTMQ%3D%3D[Encoder mit Schalter]
+* https://mou.sr/4AIVxGB[USB-C-PD Breakout Board]
+* https://mou.sr/4thBCfA[USB-C-PD Breakout Board mit Schraubklemmen]
+
+=== Waveshare
+
+* https://www.waveshare.com/2inch-capacitive-touch-lcd.htm[2" Display]
+* https://www.waveshare.com/2.8inch-capacitive-touch-lcd.htm[2.8" Display]

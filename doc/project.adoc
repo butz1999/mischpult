@@ -63,8 +63,9 @@ Es soll in kleinen, sinnvoll geschnittenen Implementations-Stücken implementier
 
 Ebenfalls berücksichtigt werden soll eine sinnvolle Machbarkeitsphase. Namentlich (aber nicht abschliessend aufgezählt) soll:
 
-* Die Ansteuerung der DC-Motoren in den Fadern
 * Die Anbindung an Home-Assistant
+* Die Implementierung des Displays mit LVGL
+* Die Ansteuerung der DC-Motoren in den Fadern
 * Die Implementierung des LRA
 * Die Implementierung eines geeigneten Reglers für die Positionierung der Fader
 
