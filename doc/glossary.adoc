@@ -46,4 +46,12 @@ Begriffe, Abkürzungen und die bevorzugte Schreibweise in diesem Projekt. Wo meh
 
 [[Trace]]Trace:: Verweis von einem Dokument, Test oder Code auf eine ID im vorgelagerten Artefakt. Siehe xref:requirements.adoc#_nachverfolgbarkeit[Nachverfolgbarkeit].
 
+[[venv]]venv:: Virtuelle Python-Umgebung, die Python-Pakete pro Workspace statt systemweit hält.
+
+[[west]]west:: Zephyrs Meta-Werkzeug für Workspace, Build, Flash und Test.
+
+[[WSL]]WSL:: Windows Subsystem for Linux, Linux-Umgebung unter Windows, in der die Firmware entwickelt wird.
+
+[[Workspace]]Workspace:: Von `west` verwaltetes Verzeichnis mit Zephyr-Quellen, Modulen und diesem Repository. Siehe xref:sw/toolchain.adoc#_installationsorte[Installationsorte].
+
 [[Zephyr]]Zephyr:: Zephyr-OS bzw. Zephyr RTOS, das Echtzeitbetriebssystem der Firmware.

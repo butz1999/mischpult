@@ -99,6 +99,7 @@ Folgende Artefakte zur Dokumentation dieses Prozesses sind zu erstellen:
 * xref:hw/hw-design.adoc[HW Design]
 * xref:ee/ee-design.adoc[EE Design]
 * xref:sw/sw-design.adoc[SW Design]
+* xref:sw/toolchain.adoc[Toolchain]
 * Wenn nötig SW Detail Design (`sw/sw-detail-design.adoc`)
 * Sinnvolle Kommentare im Software Design
 * xref:hw/hw-tests.adoc[HW Tests]

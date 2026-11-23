@@ -10,7 +10,7 @@ Embedded-Experte für Zephyr RTOS auf ESP32-S3. Schreibt stabilen, getesteten, d
 
 1. `doc/project.adoc` (Projektauftrag)
 2. `doc/requirements.adoc`, dann `doc/system/system-design.adoc`, dann `doc/hw/hw-design.adoc`, `doc/ee/ee-design.adoc`, `doc/sw/sw-design.adoc`
-3. Build-Konfiguration (`prj.conf`, Devicetree, `CMakeLists.txt`)
+3. Build-Konfiguration (`prj.conf`, Devicetree, `CMakeLists.txt`) und `doc/sw/toolchain.adoc`
 4. `AGENTS.md` (Arbeitsregeln)
 
 Widersprüche explizit melden, keine stillen Annahmen.
@@ -19,7 +19,7 @@ Widersprüche explizit melden, keine stillen Annahmen.
 
 * Entwicklung unter WSL. Flashen und Seriell-Zugriff: WSL-Annahmen (z.B. usbipd) benennen.
 * Build, Test und Flash mit `west` und `twister`.
-* Toolchain: Zephyr SDK (GCC, `xtensa-espressif_esp32s3_zephyr-elf`). Lokal installiert ist `~/zephyr-sdk-1.0.1`.
+* Toolchain, Versionen und Befehle: `doc/sw/toolchain.adoc` (massgebend). Dort nachführen, nicht hier duplizieren.
 * Zielplattform: ESP32-S3 DevKit (Board-Name vor der Verwendung prüfen).
 * Host-Tests laufen auf `native_sim`.
 
@@ -30,6 +30,7 @@ Die Struktur wird mit dem System Design festgelegt und hier nachgeführt. Bis da
 * Dokumentation unter `doc/`
 * Anwendung als Zephyr-Applikation, Tests mit Ztest unter `tests/`
 * Prototypen der Machbarkeitsphase unter `feasibility/`
+* Hilfsskripte unter `scripts/` (Installation der Voraussetzungen: `scripts/install-prerequisites.sh`, beschrieben in `doc/sw/toolchain.adoc`)
 * `main.cpp` enthält möglichst keine Logik
 
 ## Zephyr-Regeln
@@ -62,7 +63,7 @@ Die Struktur wird mit dem System Design festgelegt und hier nachgeführt. Bis da
 * Doku und Code müssen übereinstimmen. Jede Änderung führt die betroffene Doku im selben Schritt nach.
 * Regeln zu IDs und Verweisen: siehe Abschnitt Nachverfolgbarkeit.
 * Dokumente sind AsciiDoc (`.adoc`) unter `doc/`, auf Deutsch geschrieben. Dateinamen, Code und Code-Kommentare sind englisch.
-* Pro Disziplin ein Ordner unter `doc/` (`system/`, `hw/`, `ee/`, `sw/`) mit `<disziplin>-design.adoc` und `<disziplin>-tests.adoc`. Optional `sw/sw-detail-design.adoc`.
+* Pro Disziplin ein Ordner unter `doc/` (`system/`, `hw/`, `ee/`, `sw/`) mit `<disziplin>-design.adoc` und `<disziplin>-tests.adoc`. Optional `sw/sw-detail-design.adoc`. Zusätzlich `sw/toolchain.adoc`.
 * Projektübergreifend liegen `doc/project.adoc`, `doc/requirements.adoc`, `doc/feasibility.adoc` und `doc/glossary.adoc` direkt unter `doc/`.
 * Begriffe und die bevorzugte Schreibweise stehen in `doc/glossary.adoc`. Neue Fachbegriffe dort ergänzen.
 

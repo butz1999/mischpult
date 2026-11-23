@@ -1,0 +1,135 @@
+= Toolchain
+
+Beschreibt die Entwicklungsumgebung für die Firmware: Werkzeuge, festgelegte Versionen, Installationsorte, Setup und Befehle. Dieses Dokument ist die einzige Quelle für Versionen und Befehle. Andere Dokumente und `AGENTS.md` verweisen hierher. Der Rahmen steht in xref:../project.adoc[project.adoc] und xref:../requirements.adoc[requirements.adoc].
+
+== Umgebung
+
+* Entwicklung unter xref:../glossary.adoc#WSL[WSL] (Ubuntu 24.04), alles im Linux-Dateisystem.
+* Zielplattform: ESP32-S3-DEV-KIT-N8R8. Der Boardname in Zephyr ist offen.
+* Host-Tests laufen auf `native_sim`.
+
+== Werkzeuge und Versionen
+
+Mindestversionen laut Zephyr Getting Started Guide (Ubuntu 24.04 und neuer). Die Spalte "Stand" zeigt, was auf dem Entwicklungsrechner gemessen wurde.
+
+|===
+| Komponente | Minimum | Stand | Quelle
+
+| CMake | 3.28.0 | 3.28.3 | apt
+| Python | 3.12 | 3.12.3 | apt (`python3-dev`, `python3-venv`)
+| Devicetree-Compiler (`dtc`) | 1.4.6 | 1.7.0 | apt (`device-tree-compiler`)
+| Git | | 2.43.0 | apt
+| Ninja | | 1.11.1 | apt (`ninja-build`)
+| GCC (Host) mit Multilib | | 13.3.0 | apt (`gcc`, `gcc-multilib`, `g++-multilib`), für `native_sim`
+| `clang-format` | | 18.1.3 | apt
+| Weitere apt-Pakete | | | `gperf`, `ccache`, `dfu-util`, `wget`, `curl`, `ca-certificates`, `xz-utils`, `file`, `make`, `libsdl2-dev`, `libmagic1`, `python3-tk`
+| Zephyr SDK | 1.0.1 | 1.0.1 | Skript, `~/zephyr-sdk-1.0.1`
+| Compiler (Ziel) | | GCC 14.3.0 | im SDK, Toolchain `xtensa-espressif_esp32s3_zephyr-elf`
+| `west` | offen | | Skript, in der venv (im Testlauf 1.5.0)
+| Zephyr | offen | | per `west.yml` im Repository festgelegt, noch nicht vorhanden
+| `usbipd-win` | offen | nicht geprüft | Windows-Seite, manuell
+|===
+
+== Installationsorte
+
+Wo etwas installiert wird, folgt einer Regel: *Wer sich die Komponente teilt und wer sie ändert, bestimmt den Ort.*
+
+|===
+| Was | Ort | Begründung
+
+| Standardwerkzeuge der Distribution (Tabelle oben, Quelle apt)
+| systemweit, per `apt` (braucht `sudo`)
+| Von der Distribution gepflegt, für alle Projekte gleich, ändern sich selten.
+
+| Python-Pakete, `west`
+| Virtuelle Umgebung `<Workspace>/.venv`
+| Die Abhängigkeiten gehören zur Zephyr-Version im Workspace. Systemweites `pip` ist unter Ubuntu 24.04 ohnehin gesperrt (PEP 668) und mischt Projekte. Zephyr selbst nutzt dieselbe Konvention (`.venv` in der Workspace-Wurzel).
+
+| Zephyr SDK
+| benutzerweit, pro Version ein Ordner. Der genaue Ort ist noch offen, bisher `~/zephyr-sdk-<version>`.
+| Gross, projektunabhängig und nach Version getrennt, so können mehrere Versionen nebeneinander liegen. Braucht kein `sudo`. `setup.sh -c` registriert es unter `~/.cmake/packages`, dort findet Zephyr es.
+
+| Zephyr-Quellen und Module
+| Workspace `~/git/mischpult-workspace` (von `west` verwaltet)
+| Gross und fremd, gehört deshalb nicht in unser Repository. Die Version ist über `west.yml` im Repository festgelegt, so bleibt der Aufbau reproduzierbar.
+
+| Projektspezifische Konfiguration
+| im Repository: `west.yml`, `prj.conf`, Devicetree-Overlays, `.clang-format`, `scripts/`
+| Alles, was zum Projekt gehört und versioniert sein muss.
+|===
+
+Weitere Regeln:
+
+* *Nichts Installiertes im Repository.* Das Repository enthält nur, was man nicht neu erzeugen kann. Eine venv ist nicht verschiebbar (absolute Pfade) und würde einen Eintrag in `.gitignore` erzwingen.
+* *`sudo` nur für `apt`.* Nichts wird von Hand nach `/opt` oder `/usr/local` kopiert.
+* *Kein `sudo pip`* und kein `--break-system-packages`.
+* *Alles im Linux-Dateisystem von WSL* (unter `~`), nicht unter `/mnt/c`. Dort ist der Dateizugriff langsam und die Dateirechte stimmen nicht. Das Skript lehnt Pfade unter `/mnt` ab.
+* *Keine Änderung der Shell-Konfiguration.* Das Skript schreibt nicht in `~/.bashrc`. Die venv wird bewusst per `source` aktiviert.
+* *Windows-Seite getrennt:* `usbipd-win` (USB-Zugriff für das DevKit) wird manuell installiert.
+
+Gesamtstruktur nach dem Setup:
+
+----
+~/zephyr-sdk-1.0.1/        Zephyr SDK (benutzerweit, Ort noch offen)
+~/git/mischpult-workspace/ Workspace
+├── .venv/                 Python-Umgebung mit west
+├── .west/
+├── zephyr/, modules/, ...  von west verwaltet
+└── mischpult/             dieses Repository (enthält west.yml)
+----
+
+NOTE: Das Repository wird vom bisherigen Ort `~/git/mischpult` nach `~/git/mischpult-workspace/mischpult` verschoben. Der Workspace-Ordner ist selbst kein Git-Repository. `west init -l` macht den übergeordneten Ordner des Repositorys zum Workspace, deshalb braucht das Repository einen eigenen Workspace-Ordner.
+
+== Setup
+
+`scripts/install-prerequisites.sh` installiert auf einem frischen Ubuntu/Debian (auch WSL) die Voraussetzungen in drei Schritten. Wiederholtes Ausführen überspringt, was schon da ist.
+
+. Systempakete (`apt`, Tabelle oben)
+. Python-Umgebung `<Workspace>/.venv` mit `west`
+. Zephyr SDK mit der Toolchain `xtensa-espressif_esp32s3_zephyr-elf`
+
+Das Skript prüft vor dem Installieren die Mindestversionen von CMake, Python und `dtc`. Das SDK und die Toolchain lädt es selbst und prüft die SHA-256-Summe gegen die `sha256.sum` des Releases. Das ist nötig, weil das `setup.sh` des SDK Toolchains ohne Prüfsumme herunterlädt. Die Prüfsumme stammt aus demselben Release wie die Archive und schützt vor beschädigten Downloads, nicht vor einem kompromittierten Release.
+
+Aufruf:
+
+[source,bash]
+----
+scripts/install-prerequisites.sh --dry-run   # nur anzeigen, nichts ändern
+scripts/install-prerequisites.sh             # alles installieren
+scripts/install-prerequisites.sh --skip-apt  # ohne Systempakete (ohne sudo)
+----
+
+Weitere Optionen: `--skip-python` und `--skip-sdk`. Pfade und Versionen lassen sich über die Umgebungsvariablen `ZEPHYR_WS`, `ZEPHYR_SDK_VERSION`, `ZEPHYR_SDK_DIR`, `ZEPHYR_SDK_TOOLCHAINS` und `WEST_VERSION` überschreiben. Die Variablen stehen im Kopf des Skripts.
+
+*Geprüft:* Trockenlauf und ein echter Lauf mit `--skip-apt` in einem leeren Home-Verzeichnis. Dabei wurden venv, `west` (1.5.0) und das SDK samt Toolchain (GCC 14.3.0) installiert, die Prüfsummen stimmten. Der Lauf dauerte rund anderthalb Minuten, der wiederholte Lauf rund fünf Sekunden und übersprang alles.
+
+*Nicht geprüft:* Der `apt`-Schritt auf einem wirklich jungfräulichen System (auf dem Entwicklungsrechner ist fast alles schon installiert) sowie `arm64`.
+
+Noch offen und nicht Teil des Skripts, entsteht in der xref:../feasibility.adoc[Machbarkeitsphase]:
+
+* Zephyr-Workspace anlegen (`west init`, `west update`). Braucht die `west.yml` dieses Repositorys.
+* Zephyr-Python-Abhängigkeiten installieren (`west packages pip --install`) und `west zephyr-export`. Beides laut Zephyr Getting Started Guide, noch nicht ausgeführt.
+* Binäre Treiberblobs des ESP32 (z.B. für WLAN): ob und wie sie nötig sind, ist zu klären.
+* USB-Zugriff auf das DevKit unter WSL (`usbipd-win` auf Windows).
+
+== C++
+
+* Ziel ist C++23, Rückfall ist C++20 (siehe `AGENTS.md`).
+* Ausnahmen (Exceptions) und RTTI sind ausgeschaltet.
+* Geprüft: Der `g++` der Toolchain übersetzt eine Datei mit `std::expected`, `std::to_underlying`, `std::span` und `std::byteswap` mit `-std=c++23 -fno-exceptions -fno-rtti`. Das war nur ein Übersetzungstest, kein Zephyr-Build.
+* Nicht geprüft: Kconfig-Optionen (`CONFIG_CPP`, `CONFIG_STD_CPP23`) und das Verhalten der Standardbibliothek in einem Zephyr-Build.
+
+== Befehle
+
+Entwurf, noch nicht geprüft. Die Befehle werden bestätigt, sobald der Workspace steht.
+
+[source,bash]
+----
+west build -b <board> <app>
+west twister -p native_sim -T tests
+west flash
+----
+
+== Software-BOM
+
+Der Build soll eine Software-xref:../glossary.adoc#BOM[BOM] erzeugen (siehe xref:../requirements.adoc[Anforderungen]). Die Umsetzung ist offen. Zephyr bietet dafür `west spdx` (nicht geprüft).
