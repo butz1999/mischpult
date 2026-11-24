@@ -14,6 +14,8 @@ Begriffe, Abkürzungen und die bevorzugte Schreibweise in diesem Projekt. Wo meh
 
 [[Fader]]Fader:: Motorisiertes Linear-Potentiometer. Gleichbedeutend verwendet werden Slider und Linear-Potentiometer.
 
+[[Footprint]]Footprint:: Lötflächen-Geometrie eines Bauteils auf dem PCB in KiCad. Siehe xref:ee/ee-design.adoc#bibliothek[Bauteil-Bibliothek].
+
 [[FlushMount]]Flush-Mount:: Bündiger Einbau, z.B. des Displays in die Frontplatte.
 
 [[FW]]FW:: Firmware, die Software auf dem Mikrocontroller.
@@ -27,6 +29,8 @@ Begriffe, Abkürzungen und die bevorzugte Schreibweise in diesem Projekt. Wo meh
 [[LRA]]LRA:: Linear Resonant Actuator, Vibrationsaktor, der für haptische Rückmeldungen eingesetzt wird.
 
 [[LVGL]]LVGL:: Light and Versatile Graphics Library, Grafikbibliothek für das Display.
+
+[[MPN]]MPN:: Manufacturer Part Number, Herstellerteilenummer. Pflichtfeld in jedem Symbol der Bibliothek.
 
 [[OTA]]OTA:: Over-the-Air-Update, Aktualisierung der Firmware über das Funknetz, ohne das Gerät zu öffnen.
 

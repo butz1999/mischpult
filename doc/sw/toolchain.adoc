@@ -5,7 +5,7 @@ Beschreibt die Entwicklungsumgebung für die Firmware: Werkzeuge, festgelegte Ve
 == Umgebung
 
 * Entwicklung unter xref:../glossary.adoc#WSL[WSL] (Ubuntu 24.04), alles im Linux-Dateisystem.
-* Zielplattform: ESP32-S3-DEV-KIT-N8R8. Der Boardname in Zephyr ist offen.
+* Zielplattform: Waveshare ESP32-S3-DEV-KIT-N8R8, siehe <<usb-wsl,USB-Kapitel>>. Der Boardname in Zephyr ist offen.
 * Host-Tests laufen auf `native_sim`.
 
 == Werkzeuge und Versionen
@@ -27,7 +27,7 @@ Mindestversionen laut Zephyr Getting Started Guide (Ubuntu 24.04 und neuer). Die
 | Compiler (Ziel) | | GCC 14.3.0 | im SDK, Toolchain `xtensa-espressif_esp32s3_zephyr-elf`
 | `west` | offen | | Skript, in der venv (im Testlauf 1.5.0)
 | Zephyr | `v4.4.2` | | festgelegt, siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>. Die `west.yml` und der Download fehlen noch
-| `usbipd-win` | offen | nicht geprüft | Windows-Seite, manuell
+| `usbipd-win` | offen | 5.3.0 | Windows-Seite, manuell, siehe <<usb-wsl,USB unter WSL>>
 |===
 
 == Installationsorte
@@ -63,10 +63,10 @@ Weitere Regeln:
 * *Nichts Installiertes im Repository.* Das Repository enthält nur, was man nicht neu erzeugen kann. Eine venv ist nicht verschiebbar (absolute Pfade) und würde einen Eintrag in `.gitignore` erzwingen.
 * *`sudo` nur für `apt`.* Nichts wird von Hand nach `/opt` oder `/usr/local` kopiert.
 * *Kein `sudo pip`* und kein `--break-system-packages`.
-* *Alles im Linux-Dateisystem von WSL* (unter `~`), nicht unter `/mnt/c`. Dort ist der Dateizugriff langsam und die Dateirechte stimmen nicht. Das Skript lehnt Pfade unter `/mnt` ab.
+* *Alles im Linux-Dateisystem von WSL* (unter `~`), nicht unter `/mnt/c`. Das gilt für Firmware, Workspace und Werkzeuge. Für die KiCad-Dateien (läuft unter Windows) ist der Speicherort offen, siehe xref:../feasibility.adoc[Machbarkeit]. Dort ist der Dateizugriff langsam und die Dateirechte stimmen nicht. Das Skript lehnt Pfade unter `/mnt` ab.
 * *Keine Änderung der Shell-Konfiguration.* Das Skript schreibt nicht in `~/.bashrc`. Die venv wird bewusst per `source` aktiviert.
 * *SDK verschieben:* `setup.sh -c` speichert den absoluten Pfad unter `~/.cmake/packages/Zephyr-sdk/`. Nach einem Umzug muss es erneut laufen (Skript: vorher `.setup-done` im SDK-Ordner löschen), und der Eintrag zum alten Pfad ist von Hand zu entfernen.
-* *Windows-Seite getrennt:* `usbipd-win` (USB-Zugriff für das DevKit) wird manuell installiert.
+* *Windows-Seite getrennt:* `usbipd-win` (USB-Zugriff für das Board) wird manuell installiert, siehe <<usb-wsl,USB, Flashen und Debuggen unter WSL>>.
 
 Gesamtstruktur nach dem Setup:
 
@@ -111,7 +111,7 @@ Noch offen und nicht Teil des Skripts, entsteht in der xref:../feasibility.adoc[
 * Zephyr-Workspace anlegen (`west init`, `west update`). Braucht die `west.yml` dieses Repositorys.
 * Zephyr-Python-Abhängigkeiten installieren (`west packages pip --install`) und `west zephyr-export`. Beides laut Zephyr Getting Started Guide, noch nicht ausgeführt.
 * Binäre Treiberblobs des ESP32 für WLAN holen (`west blobs fetch hal_espressif`), siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>.
-* USB-Zugriff auf das DevKit unter WSL (`usbipd-win` auf Windows).
+* USB-Zugriff auf das Board unter WSL, Flashen und Debuggen: Entwurf in <<usb-wsl,USB, Flashen und Debuggen unter WSL>>, am Gerät noch nicht geprüft.
 
 == Zephyr-Version und Module
 
@@ -125,7 +125,150 @@ Entschieden, aber noch nicht umgesetzt (die `west.yml` ist noch nicht geschriebe
 ** Sie erscheinen in der Software-BOM mit Version, Herkunft und Lizenz. Die Lizenz ist noch nicht geprüft.
 ** Sie sind ein dokumentierter Abstrich bei der Cyber-Security. Sicherheitskorrekturen kommen nur von Espressif, ein neuer Stand wird per OTA eingespielt.
 ** Wird der Blob unhaltbar (Hersteller stellt Pflege ein, schwere ungepatchte Lücke), ist die Folge ein anderer Controller. Software und Fachlogik sind dank Devicetree und hardwareunabhängiger Logik übertragbar (Annahme), das PCB nicht. Deshalb muss die Machbarkeit vor der PCB-Bestellung belegen, dass WLAN, LVGL und Regler gleichzeitig laufen, siehe xref:../feasibility.adoc[Machbarkeit].
-* *Boardname:* vermutlich `esp32s3_devkitc` (nicht im Zephyr-Quellbaum geprüft). Laut Doku gibt es Snippets für PSRAM. Bei Octal-PSRAM sind die GPIOs 35 bis 37 intern belegt (Quelle: Espressif, nicht geprüft). Das ist für die Pin-Planung des PCB relevant.
+* *Boardname:* Das Waveshare-Board ist kein Espressif-DevKitC-1, hat aber laut Waveshare dessen Pinbelegung. Möglicher Kandidat ist deshalb `esp32s3_devkitc` (nicht im Zephyr-Quellbaum geprüft, ob LED, Taster und USB zum Board passen, ist offen). Laut Doku gibt es Snippets für PSRAM. Bei Octal-PSRAM sind die GPIOs 35 bis 37 intern belegt (Quelle: Espressif, nicht geprüft). Das ist für die Pin-Planung des PCB relevant.
+
+[#usb-wsl]
+== USB, Flashen und Debuggen unter WSL
+
+WSL2 ist eine VM und sieht kein USB-Gerät von Windows. `usbipd-win` reicht einzelne Geräte per USB/IP an die WSL durch. Dieses Kapitel beschreibt den Weg vom Board bis zu Flashen, Seriell-Monitor und Debuggen aus VS Code. Es ist ein Entwurf: Nur der Abschnitt "Gemessener Stand" ist geprüft, der Rest ist Annahme aus der Herstellerdokumentation und wird mit dem ersten Build bestätigt.
+
+=== Gemessener Stand
+
+|===
+| Punkt | Befund
+
+| `usbipd-win` (Windows) | 5.3.0 installiert
+| WSL-Kernel | 6.18.33.2-microsoft-standard-WSL2
+| Kernel-Module | `usbip-core`, `vhci-hcd` (8 Ports), `cdc-acm`, `cp210x`, `ftdi_sio` vorhanden (als Module)
+| systemd in WSL | aktiv (`/etc/wsl.conf`)
+| Benutzer | in den Gruppen `dialout` und `plugdev`
+| Angeschlossenes Board | nicht geprüft, es war kein Gerät eingebunden (`/dev/ttyACM*` und `/dev/ttyUSB*` fehlen)
+|===
+
+=== Entscheide
+
+* Debuggen ist Pflicht, zusätzlich zum Logging (siehe xref:../requirements.adoc[Anforderungen]). Im regulären, geschlossenen Betrieb wird nicht debuggt.
+* Auf dem eigenen PCB ist der Programmier- und Debug-Zugang der interne USB-Anschluss des ESP32-S3 (GPIO19/20). Der externe PD-Port führt keine Daten. GPIO39 bis 42 bleiben als Reserve-JTAG frei.
+* Motoren sind beim Programmieren stromlos (9V getrennt). Das beeinflusst das SW Design: Der Regler muss damit umgehen, dass Fahrbefehle ohne Bewegung bleiben. Eine 9V-Erkennung wäre dafür hilfreich (HW-Entscheid offen).
+* Der Prototyp (Waveshare-Board) hat nur eine USB-C-Buchse. Ob dort JTAG nutzbar ist, ist offen und wird als Erstes geprüft.
+
+=== Der USB-Anschluss des Boards
+
+Das Board ist das Waveshare ESP32-S3-DEV-KIT-N8R8 (Modul ESP32-S3-WROOM-1-N8R8, 8 MB Quad-Flash, 8 MB PSRAM). Es ist *kein* Espressif DevKitC-1, hat aber laut Waveshare dessen Pinbelegung (Quelle: https://docs.waveshare.com/ESP32-S3-DEV-KIT-N8R8[Waveshare-Dokumentation], die Pinbelegung dort ist nur ein Bild und wurde nicht verglichen).
+
+Laut Waveshare hat das Board *eine* USB-C-Buchse. Die Chips CH343 (USB-UART) und CH334 sind darauf, und am PC erscheinen *zwei* COM-Ports: einer für das native USB des ESP32-S3, einer für die UART-Brücke CH343. Nicht angegeben sind: die Rolle des CH334 (vermutlich ein USB-Hub, Annahme), die USB-IDs, die UART-Pins, die Auto-Reset-Schaltung und ob das native USB als USB-Serial/JTAG (und damit mit JTAG) nutzbar ist. Die Seite erwähnt weder JTAG noch Debuggen.
+
+|===
+| Schnittstelle | USB-ID | Linux-Gerät | Verwendung
+
+| CH343 (UART)
+| nicht angegeben, üblich `1a86:55d3` (Annahme)
+| `/dev/ttyACM*` oder `/dev/ttyUSB*` (Annahme, per `/dev/serial/by-id/` zuordnen)
+| Log-Konsole, Flashen mit `esptool`
+
+| Natives USB des ESP32-S3
+| `303a:1001` falls USB-Serial/JTAG (Annahme)
+| `/dev/ttyACM*`
+| Flashen, Konsole, JTAG-Debuggen (nur wenn JTAG vorhanden)
+|===
+
+Folgen für das Vorgehen:
+
+* Mit *einem* Kabel kommen zwei Geräte hinter einem Hub. `usbipd` zeigt sie als getrennte Einträge (Annahme). Beide Einträge werden mit `bind` freigegeben und eingebunden. Wie sie sich nach Reset und Flashen verhalten, ist offen.
+* Welcher COM-Port welcher ist, steht laut Waveshare in deren FAQ (nicht gelesen). Nicht über Nummern raten, sondern über `lsusb` und `/dev/serial/by-id/` zuordnen.
+* Ob JTAG-Debuggen geht, entscheidet sich an der Hardware: Ist das native USB des Moduls (GPIO19 und GPIO20, Annahme gemäss DevKitC-1-Pinbelegung) mit der Buchse verbunden, ist USB-Serial/JTAG verfügbar. Ist die Buchse nur über den Hub angebunden, kann der Hub das stören. Das wird am Gerät mit `lsusb` und einem OpenOCD-Verbindungsversuch geprüft. Fällt JTAG aus, bleiben Log und Messung, oder ein externer Debug-Probe an eigenen Pins.
+* GPIO19 und GPIO20 sind bei Nutzung des nativen USB für die Anwendung gesperrt. Das ist für die PCB-Planung relevant.
+* GPIO35 bis GPIO37 sind laut Waveshare-Tabelle beim N8R8 "NC" (nicht herausgeführt). Das passt zu Octal-PSRAM (Annahme), siehe Boardname-Hinweis oben.
+
+=== Einrichtung
+
+Windows-Seite, einmalig (PowerShell als Administrator für `bind`):
+
+[source,powershell]
+----
+winget install usbipd
+usbipd list                                   # BUSID und VID:PID ablesen (CH343 und nativer ESP32-S3)
+usbipd bind --busid <BUSID>                   # einmalig, pro Gerät
+usbipd attach --wsl --busid <BUSID> --auto-attach
+----
+
+* `bind` bleibt über Neustarts erhalten, `attach` nicht. Bei zwei Einträgen (CH343, nativ) beide binden und einbinden. `--auto-attach` hält das Fenster offen und bindet das Gerät nach jedem Neueinstecken und Reset wieder ein. Das ist wichtig, weil sich der ESP32-S3 beim Flashen über das native USB neu am USB anmeldet (Annahme).
+* Die BUSID ist vom Port abhängig. Derselbe Anschluss am selben Hub behält sie.
+* Ein eingebundenes Gerät ist für Windows gesperrt (kein COM-Port, kein Arduino-/Terminalprogramm gleichzeitig).
+
+WSL-Seite:
+
+[source,bash]
+----
+lsusb                       # Gerät sichtbar? (Paket usbutils)
+ls /dev/ttyUSB* /dev/ttyACM*
+----
+
+* Serielle Geräte gehören der Gruppe `dialout`, der Benutzer ist schon drin.
+* Für JTAG (OpenOCD greift per libusb direkt auf das USB-Gerät zu) ist eine udev-Regel nötig, sonst braucht OpenOCD `sudo`. Regel in `/etc/udev/rules.d/60-esp32-jtag.rules` (Annahme, nicht geprüft):
++
+[source,text]
+----
+SUBSYSTEM=="usb", ATTR{idVendor}=="303a", ATTR{idProduct}=="1001", MODE="0660", GROUP="plugdev"
+----
++
+Danach `sudo udevadm control --reload && sudo udevadm trigger` und das Gerät neu einbinden.
+
+Das ist die einzige Stelle, an der `sudo` ausserhalb von `apt` vorkommt (Systemdatei in `/etc`). Das Installationsskript legt die Regel bewusst nicht an. Die Regel wird erst festgeschrieben, wenn sie am Gerät bestätigt ist.
+
+=== Flashen und Konsole
+
+* Flashen: `west flash` (Runner `esptool`, das Image kommt aus dem Build-Ordner). Mit mehreren Geräten den Port angeben, z.B. `west flash --esp-device /dev/serial/by-id/<CH343-Eintrag>` (Option nicht geprüft).
+* Konsole: `west espressif monitor` (nicht geprüft) oder `picocom -b 115200 /dev/serial/by-id/<CH343-Eintrag>`.
+* Fehlerbild "Gerät nicht gefunden" oder "Port busy": prüfen, ob `usbipd attach` noch läuft und das Gerät nicht von Windows belegt ist.
+
+=== VS Code
+
+Ablauf: VS Code läuft unter Windows als Oberfläche, die Erweiterungen und alle Werkzeuge laufen in der WSL.
+
+. Erweiterung *WSL* (`ms-vscode-remote.remote-wsl`) in Windows installieren.
+. Aus der WSL im Repository `code .` aufrufen (oder "WSL: Connect to WSL" und den Ordner `~/git/mischpult-workspace` öffnen). Den *Workspace-Ordner* öffnen, nicht nur das Repository, damit Zephyr-Quellen für IntelliSense auffindbar sind.
+. Erweiterungen *in WSL* installieren (Schaltfläche "In WSL installieren"): `ms-vscode.cpptools` (C/C++ und Debugger `cppdbg`), `ms-vscode.cmake-tools` ist nicht nötig, `west` ersetzt es. Für die Konsole optional `ms-vscode.vscode-serial-monitor`. Er sieht die Geräte der WSL (nicht geprüft).
+. IntelliSense: `west build` erzeugt `compile_commands.json` im Build-Ordner. `C_Cpp.default.configurationProvider` bzw. `compileCommands` in `c_cpp_properties.json` zeigt darauf.
+. Build, Flash und Monitor als `tasks.json` mit den `west`-Befehlen aus dem Kapitel Befehle. Die Befehle stehen nur dort, die Tasks rufen sie auf.
+. Die venv muss aktiv sein. Am einfachsten startet man `code .` aus einer Shell, in der die venv aktiviert ist, oder setzt in `settings.json` `python.defaultInterpreterPath` auf `<Workspace>/.venv/bin/python` und aktiviert sie in den Tasks per `source`.
+
+Dateien unter `.vscode/` gehören zum Repository, sobald sie bestätigt sind. Sie enthalten keine persönlichen Pfade (relativ zu `${workspaceFolder}`, keine festen Home-Verzeichnisse).
+
+=== Debuggen
+
+Der ESP32-S3 (Xtensa) hat im nativen USB JTAG eingebaut, *sofern es auf diesem Board nutzbar ist* (offen, siehe oben). Der Weg:
+
+----
+VS Code (cppdbg) --> xtensa-...-gdb --TCP 3333--> OpenOCD --libusb--> usbipd --> Board
+         (alles in der WSL)                                     (Windows)
+----
+
+* *OpenOCD:* Es braucht die Espressif-Variante (`openocd-esp32`), der Upstream-Stand kennt den ESP32-S3 nur teilweise (Annahme). Sie ist nicht im Zephyr SDK enthalten (im SDK-Ordner nicht gefunden). Installationsort nach der Regel von oben: benutzerweit, `~/openocd-esp32/<Version>/`. Version und Download-Prüfsumme werden festgelegt, wenn sie installiert wird. Das Installationsskript kennt OpenOCD noch nicht.
+* *GDB:* der des Zephyr SDK, `xtensa-espressif_esp32s3_zephyr-elf-gdb` unter `~/zephyr-sdk/v1.0.1/` (Pfad nicht geprüft).
+* *Zephyr-Weg:* `west debug` und `west debugserver` starten OpenOCD und GDB mit den Einstellungen des Boards (Runner `openocd`, Aufruf mit `--openocd <Pfad>`, nicht geprüft). Das ist der erste Test, vor jeder VS-Code-Konfiguration.
+* *VS Code:* Eine `launch.json` vom Typ `cppdbg` mit `miDebuggerPath` auf den Xtensa-GDB, `miDebuggerServerAddress` `localhost:3333` und `program` auf `build/zephyr/zephyr.elf`. Den Debug-Server startet eine Task (`west debugserver`) als `preLaunchTask`. Cortex-Debug ist für ARM gedacht und hier nicht die erste Wahl. Die Espressif-IDF-Erweiterung zielt auf ESP-IDF, nicht auf Zephyr.
+* *Build für Debug:* `CONFIG_DEBUG_OPTIMIZATIONS=y` und `CONFIG_DEBUG_THREAD_INFO=y` (Thread-Ansicht im Debugger, Zephyr-Doku, nicht geprüft). Das gehört in ein eigenes Konfigurations-Overlay, nicht in `prj.conf`.
+
+Bekannte Einschränkungen (Annahmen aus der Espressif-Dokumentation, nicht gemessen):
+
+* Der ESP32-S3 hat nur 2 Hardware-Breakpoints und 2 Watchpoints. Weitere Breakpoints gehen nur im RAM, nicht im Flash.
+* Beim Anhalten laufen WLAN und Timer weiter bzw. brechen ab (Watchdogs, WLAN-Verbindung). Anhalten im Betrieb mit WLAN und Fader-Regelung ist kein Mittel für Timing-Fragen. Dafür gelten Log und Messung.
+* JTAG über USB/IP ist wegen der Latenz langsamer als lokal. Ob das für Einzelschritte stört, zeigt der Versuch.
+* Reset aus dem Debugger trennt das USB-Gerät kurz. Ohne `--auto-attach` bricht die Sitzung ab.
+
+=== Fallback
+
+Macht USB/IP Probleme (Abbrüche, Timing), bleibt Flashen von der Windows-Seite: `esptool` unter Windows auf die Image-Datei aus dem Build (erreichbar über `\\wsl$\...`). Zephyr wird weiter in der WSL gebaut. Das löst Flashen und Konsole, nicht das Debuggen. Debugging ohne USB/IP bräuchte ein WSL-Setup mit durchgereichtem USB-Controller und ist nicht vorgesehen.
+
+=== Offen
+
+* Board einstecken und die Tabelle "Der USB-Anschluss des Boards" gegen `usbipd list`, `lsusb` und `/dev/serial/by-id/` prüfen. Waveshare-FAQ und Schaltplan (Resources) lesen: CH334-Rolle, USB-IDs, Auto-Reset, JTAG.
+* `west flash` und Konsole über beide Schnittstellen (CH343, nativ) prüfen, inklusive Verhalten nach Reset.
+* Prüfen, ob JTAG auf diesem Board erreichbar ist (`lsusb` zeigt `303a:1001`, OpenOCD verbindet).
+* OpenOCD-Variante, Version und Installationsort festlegen, `west debug` prüfen, danach `launch.json`.
+* udev-Regel bestätigen und dokumentieren, `.vscode/` ins Repository.
+* Board-Name festlegen (siehe oben), alle Runner-Aussagen hängen daran.
 
 == C++
 

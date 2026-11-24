@@ -38,7 +38,7 @@ Aktuell verfügbar ist ein ESP32-S3-DEV-KIT-N8R8, welches eingesetzt werden soll
 
 === Elektronik
 
-Dieses Projekt soll ausserdem zum Ziel haben, ein (oder bei Bedarf mehrere) PCB mit KiCad zu designen. Die verwendeten Bauteile sollten also wenn möglich als Bibliotheks-Bauteil vorhanden sein. Es soll dabei auf eine frei verfügbare Bauteil Bibliothek zurückgegriffen werden. Das PCB Design soll Neben- und nicht Haupt-Aspekt dieses Projektes sein. Es soll letztlich Zeit sparen und nicht Zeit verbraten.
+Dieses Projekt soll ausserdem zum Ziel haben, ein (oder bei Bedarf mehrere) PCB mit KiCad zu designen. Die verwendeten Bauteile sollten also wenn möglich als Bibliotheks-Bauteil vorhanden sein. Es soll dabei auf eine kostenlos zugängliche Bauteil Bibliothek zurückgegriffen werden, die für den einfachen Gebrauch geeignet ist. Das Mischpult soll einen selbst entworfenen Print enthalten. Das PCB Design ist aber ein Nebenaspekt und wird nicht um jeden Preis oder perfektionistisch betrieben. Es soll Zeit sparen und nicht Zeit verbraten. Wo es den Aufwand senkt, werden fertig verfügbare Baugruppen (z.B. DC-DC-Wandler) oder andere Komponenten auf oder neben dem selbst entworfenen Print eingesetzt, statt sie selbst zu entwerfen.
 
 == Prozess
 

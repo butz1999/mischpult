@@ -4,11 +4,13 @@ Machbarkeitsstudien mit Abnahmekriterien und Ergebnissen. Siehe xref:project.ado
 
 == Reihenfolge
 
-Vorhanden ist bisher nur das ESP32-S3-DevKit. Die Studien laufen in dieser Reihenfolge:
+Vorhanden ist bisher nur das Waveshare ESP32-S3-DEV-KIT-N8R8 (siehe xref:sw/toolchain.adoc#usb-wsl[toolchain.adoc]). Die Studien laufen in dieser Reihenfolge:
 
-. *Vorstufe (keine Studie):* Hello-World-Build für `native_sim` und für das DevKit. Belegt Boardname, C++23-Kconfig und Flashen unter WSL.
+. *Vorstufe (keine Studie):* Hello-World-Build für `native_sim` und für das DevKit. Belegt Boardname, C++23-Kconfig und Flashen unter WSL. Dazu die USB-Prüfung: Welche Geräte erscheinen unter WSL, funktioniert Konsole, und ist JTAG-Debuggen über die eine USB-Buchse des Boards möglich (Debuggen ist gefordert, siehe xref:requirements.adoc[Anforderungen]). Ein Scheitern von JTAG ist kein No-Go für den Controller, sondern führt zu einem externen Debug-Probe an GPIO39 bis 42.
 . *Home-Assistant-Anbindung.* Braucht nur das DevKit und WLAN. Diese Studie ist ein Go/No-Go für den Controller: Läuft der ESP32-S3 nicht mit Home-Assistant, wird nichts für die weiteren Studien bestellt.
+. *Pin-Belegung (Papierstudie, keine Hardware nötig).* Klärt, ob die GPIOs des ESP32-S3 für alles reichen: 4 Fader mit Motortreiber und Positionsmessung, Display mit Touch, Inkrementalgeber mit Taster, 4 Taster, LRA-Treiber, 9V-Erkennung, dazu die reservierten Pins (GPIO19/20 für USB, GPIO39 bis 42 als Reserve-JTAG) und die vom Modul belegten (Flash und PSRAM, Strapping-Pins, UART der Konsole). Abnahme (noch nicht festgelegt): Eine Tabelle mit allen Signalen und ihren GPIOs, Reserve ausgewiesen, Annahmen zu Peripherie (z.B. gemeinsamer I2C-Bus) benannt. Reicht es nicht, gilt diese Reihenfolge: zuerst Reserve prüfen und Pin-sparende Lösungen suchen (z.B. I2C-Portexpander), zuletzt den LRA aus den Anforderungen streichen. Das Ergebnis bestimmt, welche Teile bestellt werden.
 . *Hardware für die Machbarkeit bestellen (ToDo, nur nach bestandener Home-Assistant-Studie).* Das nicht vergessen, die Lieferzeit bestimmt den weiteren Ablauf. Es gilt die Beschaffungsregel unten. Die Liste ist noch zu erstellen. Infrage kommen Fader mit Motor, Motortreiber, Display, Inkrementalgeber und LRA mit Treiber, die Auswahl steht in xref:hw/hw-design.adoc[hw-design.adoc].
+. *KiCad-Arbeitsweise und Bauteil-Bibliothek (Prio 2, nach der Home-Assistant-Studie).* Braucht keine Hardware und läuft parallel zur Lieferzeit der bestellten Teile. Klärt, ob das Konzept aus xref:ee/ee-design.adoc#bibliothek[ee-design.adoc] trägt: KiCad unter Windows mit Repository in der WSL, hierarchisches Schema, Projektbibliothek mit Pflichtfeldern, Stückliste und Bestellexport. Mögliche Abnahme (noch nicht festgelegt): Ein Testschema mit einigen Teilen aus Schicht 1 und 2, Design-Rule-Check ohne Fehler, Stückliste aus den Feldern, Änderung in Windows, Commit in WSL und Branch-Wechsel ohne Verfälschung der Dateien. Dabei auch Fertiger und Bestückungsweg entscheiden. Dazu gehört die Frage *Kann KiCad sinnvoll in der WSL speichern?* (siehe <<_kicad_und_wsl,KiCad und WSL>>).
 . *LVGL-Display.*
 . *Fader-Motor und Regler.* Der Regler wird zuerst auf `native_sim` gegen ein Streckenmodell entworfen, danach mit Hardware getestet.
 . *LRA.*
@@ -19,7 +21,41 @@ Vorhanden ist bisher nur das ESP32-S3-DevKit. Die Studien laufen in dieser Reihe
 * *Protokoll zu Home-Assistant:* Offen ist, ob MQTT, die ESPHome-Native-API oder die Home-Assistant-WebSocket-API verwendet wird. Annahme, nicht recherchiert: Zephyr bringt MQTT mit, die anderen beiden müssten selbst gebaut werden. Wird in der Home-Assistant-Studie entschieden und danach in den Anforderungen und im System Design nachgeführt.
 * *Abnahmekriterien der Studien:* Für keine Studie festgelegt. Als Nächstes die Home-Assistant-Studie. Dafür braucht es eine erreichbare Home-Assistant-Instanz, ob und wie sie bei dir läuft, ist nicht geklärt.
 
+== KiCad und WSL
+
+*Frage:* Kann KiCad (Windows) sinnvoll Dateien speichern, die im Linux-Dateisystem der WSL liegen?
+
+*Recherche (Stand 2026-11-24, Websuche, nichts ausprobiert):*
+
+* Zu KiCad auf dem WSL-Pfad (`\\wsl.localhost\...`) wurde nichts Spezifisches gefunden. Alles Folgende ist allgemeine Aussage zu WSL, nicht für KiCad bestätigt.
+* Microsoft rät, Dateien auf das Windows-Dateisystem zu legen, wenn Windows- und Linux-Werkzeuge beide darauf zugreifen, weil Windows-Programme Dateien sperren und beschädigen könnten (Aussage aus einem Suchergebnis, Microsoft-Dokumentation nicht selbst gelesen. Der gefundene Blogeintrag https://devblogs.microsoft.com/commandline/do-not-change-linux-files-using-windows-apps-and-tools/["Do not change Linux files using Windows apps and tools"] stammt von 2016 und ist möglicherweise überholt). Das Risiko betrifft vor allem gleichzeitigen Zugriff.
+* Der Zugriff über die Grenze läuft über das 9P-Protokoll und ist langsamer als nativ.
+* KiCad legt beim Öffnen `*.lck`-Dateien an. Über Cloud-Laufwerke sind verwaiste Sperrdateien als Problem berichtet (anderer Fall, nur als Analogie).
+* Möglicher Weg 3: KiCad in der WSL über WSLg ausführen. WSLg ist ab Windows 11 vorhanden. KiCad-spezifische Quellen dazu wurden nicht gefunden, auch nicht, welche KiCad-Version Ubuntu 24.04 per `apt` liefert.
+
+*Wege (Entwurf):*
+
+|===
+| Weg | Beschreibung | Schwäche
+
+| A. Netzwerkpfad
+| KiCad unter Windows öffnet das Projekt in der WSL (aktuelles Konzept)
+| Sperren, Geschwindigkeit, Dateiüberwachung. Nie gleichzeitig in beiden Welten öffnen.
+
+| B. Zweite Kopie unter `C:`
+| Repository zusätzlich unter Windows, Austausch über `git` (Push und Pull)
+| Zwei Kopien, Austausch von Hand, Konfliktrisiko.
+
+| C. KiCad in der WSL (WSLg)
+| Alles im Linux-Dateisystem, kein Wechsel der Welten
+| Nicht geprüft: Grafikleistung (3D-Ansicht), Version, Bedienung. Der Benutzer bevorzugt KiCad unter Windows.
+|===
+
+*Entscheid ausstehend:* Zuerst mit einem Wegwerf-Projekt Weg A ausprobieren (kleiner Aufwand, das Risiko ist durch Git begrenzt). Gelingt das nicht, bleibt B oder C. Zeigt sich, dass die Regel "alles im Linux-Dateisystem" für KiCad nicht trägt, wird die xref:sw/toolchain.adoc[Toolchain] nach Firmware (WSL) und Elektronik (Speicherort offen) getrennt. Abnahme des Versuchs: Projekt anlegen und speichern, Änderung in Windows, `git status` in WSL zeigt nur die erwarteten Änderungen, Branch-Wechsel in WSL und erneutes Öffnen ohne Fehler und ohne Sperrdateien-Warnung.
+
 == Entscheide und Randbedingungen
+
+* *KiCad-Studie hängt an der Teileauswahl:* Die Bibliothek wird sinnvoll nur mit Teilen gefüllt, die in xref:hw/hw-design.adoc[hw-design.adoc] gewählt sind. Die Studie prüft deshalb die Arbeitsweise mit wenigen Teilen und nicht die vollständige Bibliothek.
 
 * *Binärblobs für WLAN:* Der ESP32-S3 braucht binäre Treiberteile von Espressif. Sie sind unter den Regeln in xref:sw/toolchain.adoc#_zephyr_version_und_module[toolchain.adoc] akzeptiert.
 * *Beschaffung: Verfügbarkeit vor Preis.* Verzögerungen in der Hardware-Beschaffung sollen die Studien nicht bremsen. Lieber mehr ausgeben als auf Hardware warten, aber mit Mass. Was "mit Mass" heisst, ist nicht beziffert und wird bei der Bestellung entschieden. Das gilt für die Teile der Machbarkeit.

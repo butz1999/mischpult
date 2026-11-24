@@ -82,7 +82,8 @@ Eine Spezifikation ohne den geforderten Verweis gilt als verwaist (`SYS`: mindes
 * Das Display sollte xref:glossary.adoc#FlushMount[Flush-Mount] ermöglichen.
 * Hochwertige Frontplatte aus Aluminium.
 * Zweckmässiges und schönes Holz-Gehäuse.
-* 1 USB-C Port mit zweckmässiger Gehäusedurchführung für 9V xref:glossary.adoc#PD[Power Delivery].
+* 1 USB-C Port mit zweckmässiger Gehäusedurchführung für 9V xref:glossary.adoc#PD[Power Delivery]. Dieser Port führt nur Spannung, keine Daten.
+* Programmier- und Debug-Zugang zum Controller über dessen eigenen USB-Anschluss, der im Gehäuse bei geöffnetem Deckel zugänglich ist. Debuggen im geschlossenen, regulären Betrieb wird nicht gefordert.
 * Als Controller-Basis dient das ESP32-S3-DEV-KIT-N8R8, sofern es die Software-Anforderungen vollumfänglich abdeckt (Prüfung in der Machbarkeitsphase).
 
 == Elektronik
@@ -90,17 +91,22 @@ Eine Spezifikation ohne den geforderten Verweis gilt als verwaist (`SYS`: mindes
 * Speisung über USB-C xref:glossary.adoc#PD[Power Delivery]-Netzteil.
 * DC-DC-Wandler für 9V auf 3.3V für den Controller.
 * Verwendung von 3.3V kompatiblen Peripherie-Bausteinen.
+* Die 9V-Motorversorgung ist von der 5V/3.3V-Versorgung des Controllers getrennt. Beim Programmieren über USB laufen Controller und Motortreiber-Logik aus der USB-Speisung, die Motoren bleiben stromlos (Fahrbefehle kommen an, die Fader bewegen sich nicht). Die Versorgung muss so ausgelegt sein, dass keine Rückspeisung in den PC oder das Netzteil möglich ist.
+* Optional: Erkennung der 9V-Versorgung, damit die Software weiss, ob die Motoren versorgt sind.
+* Die GPIOs 19 und 20 (natives USB) sind für den Programmier- und Debug-Zugang reserviert. Die GPIOs 39 bis 42 (klassisches JTAG) bleiben als Reserve frei und sind als Test-Pads erreichbar.
 * Verwendung von Fadern mit Motorensteuerung.
 * Verwendung eines Inkrementalgebers mit Druckschalter-Funktionalität.
 * Verwendung von einem xref:glossary.adoc#LRA[LRA] und der nötigen Treiber für eine haptische Rückmeldung beim Bedienen des Inkrementalgebers. (z.B. 0% erreicht, 10% Schritte durchfahren, 100% erreicht, Überlauf des Menübandes, Rückmeldungen bei der Bedienung der Fader, etc.)
 * Ansteuerung der DC-Motoren der Fader über geeignete Motortreiber.
 * Das PCB (oder bei Bedarf mehrere) wird mit KiCad entworfen und extern gefertigt.
-* Bauteile stammen wenn möglich aus einer frei verfügbaren KiCad-Bibliothek.
+* Bauteile stammen wenn möglich aus einer kostenlos zugänglichen KiCad-Bibliothek, die für den einfachen Gebrauch geeignet ist.
 
 == Software
 
 * Die Software soll mit einer geeigneten technischen Massnahme vermeiden, dass auf dem Display *keine* Einbrenn-Schäden entstehen.
 * Einsatz von xref:glossary.adoc#Zephyr[Zephyr-OS].
+* Die Software ist mit einem Debugger (Breakpoints, Einzelschritt) debugbar, zusätzlich zum Logging. Beides wird gefordert. Das gilt unter WSL aus VS Code (siehe xref:sw/toolchain.adoc#usb-wsl[toolchain.adoc]).
+* Die Software erkennt oder berüchsichtig mit sinnvollem Error Handling, wenn die Motoren nicht versorgt sind (z.B. beim Programmieren), und verhält sich dabei kontrolliert, ohne Fehlalarm im Regler. Voraussetzung ist die optionale 9V-Erkennung der Elektronik.
 * Einsatz von zweckmässigen Cyber-Security-Massnahmen.
 * Die Software soll mit geeigneten Massnahmen den Stromverbrauch minimieren.
 * Die Software soll ein xref:glossary.adoc#FW[Firmware]-Update über xref:glossary.adoc#OTA[OTA] durchführen können.

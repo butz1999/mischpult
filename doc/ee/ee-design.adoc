@@ -1,3 +1,173 @@
 = EE Design
 
 Schaltung, Bauteilwahl und PCB (KiCad). Setzt xref:../system/system-design.adoc[system-design.adoc] um.
+
+[#bibliothek]
+== Bauteil-Bibliothek (KiCad)
+
+Konzept, noch nicht umgesetzt und nicht in KiCad geprüft. Es gehört zu den Anforderungen "PCB mit KiCad, Bauteile aus freier Bibliothek" (siehe xref:../requirements.adoc[Anforderungen], Kapitel Elektronik). Es sind noch keine EE-Spezifikationen mit IDs vergeben, das folgt mit dem EE-Design.
+
+=== Ziele
+
+* Einfach zu bedienen: Ein Bauteil wird einmal sauber aufgenommen und danach nur noch gewählt.
+* Keine Auseinandersetzung mit Bauteil-Verfügbarkeit während des Entwurfs. Sie wird beim Bestellen geprüft, nicht beim Zeichnen.
+* Gut lesbar und gut lötbar: grosse Bauformen, weil das Sehvermögen des Entwicklers für Kleinteile nicht ausreicht (Inspektion, Messen, Nacharbeiten).
+* Reproduzierbar: Die Bibliothek liegt im Repository und ändert sich nur durch bewusste Änderungen.
+* Ease-of-use geht vor Preis.
+
+=== Ausgangslage und Entscheide
+
+* Es gibt ein früheres KiCad-Schema mit einfachem Layout für eine Lochrasterplatine. Es wurde nie als PCB bestellt. Es dient nicht als Vorlage, nur als Erfahrung.
+* *Bestückung:* offen. Tendenz: bestückt beim Fertiger bestellen. Die Bibliothek wird so gebaut, dass beide Wege gehen (siehe <<ee-bib-baugroesse,Bauformen>>).
+* *Bauformen:* möglichst gross.
+* *Controller:* steckbar (DevKit auf Buchsenleisten), kein Modul und kein ESP32-Footprint auf dem PCB.
+* *Ablage:* im Repository dieses Projekts. KiCad läuft unter Windows, siehe <<_ablage_und_arbeitsweise_mit_kicad_unter_windows,Ablage und Arbeitsweise>>.
+
+=== Aufbau in drei Schichten
+
+|===
+| Schicht | Inhalt | Quelle
+
+| 1. Standard
+| Widerstände, Kondensatoren, LEDs, Dioden, Stift- und Buchsenleisten, einfache Steckverbinder
+| Offizielle KiCad-Bibliotheken, aber mit je einer festgelegten Bauform (siehe unten)
+
+| 2. Projekt
+| Alles Spezielle: Fader, Inkrementalgeber, Display- und Touch-Anschluss, Motortreiber, LRA-Treiber, PD-Controller, DC-DC-Wandler, Buchsenleisten-Footprint für das DevKit
+| Eigene Bibliothek im Repository (Symbole, Footprints, 3D-Modelle), aus Herstellerquellen übernommen und geprüft
+
+| 3. Bestellbezug
+| Fertiger-Teilenummer und Herstellerdaten als Felder im Symbol
+| Pflichtfelder, siehe unten
+|===
+
+=== Ablage und Arbeitsweise mit KiCad unter Windows
+
+KiCad läuft unter Windows, das Repository bleibt in der WSL (siehe xref:../sw/toolchain.adoc[Toolchain], dort die Regel "alles im Linux-Dateisystem"). Der Ablauf (Annahme, nicht geprüft):
+
+* *Ein* Repository, in der WSL. KiCad öffnet das Projekt über den Netzwerkpfad der WSL (`\\wsl.localhost\<Distribution>\home\<Benutzer>\git\mischpult-workspace\mischpult\ee\`). Eine zweite Kopie unter `C:` gibt es nicht, damit nichts auseinanderläuft.
+* *Git nur in der WSL.* Nicht von Windows aus auf den WSL-Pfad, weil Dateirechte und Zeilenenden sonst verfälscht werden können.
+* Nach dem Speichern in KiCad zeigt `git status` in der WSL die Änderungen. Der Benutzer staged und committet, wie in `AGENTS.md` geregelt.
+* KiCad darf nicht gleichzeitig mit einem Branch-Wechsel in der WSL offen sein. Vor `git checkout`, `merge` und `rebase` das Projekt schliessen. Danach neu öffnen.
+* Risiken des Netzwerkpfads: langsamerer Zugriff, KiCad-Sperrdateien (`*.lck`), Dateiüberwachung. Was davon stört, zeigt der erste Versuch. Fallback: Repository-Kopie unter `C:`, aus der WSL per `git` synchronisiert (dann gilt die Regel "kein Zugriff aus `/mnt`" nur für Zephyr, nicht für die KiCad-Dateien).
+
+==== Ordnerstruktur (Vorschlag)
+
+Die Struktur ist so gewählt, dass Änderungen an verschiedenen Themen in verschiedenen Dateien landen und Merge-Konflikte selten werden. Die Struktur des Repositorys ist noch nicht festgelegt (siehe `AGENTS.md`, Abschnitt Projektstruktur), bei Zustimmung dort nachzuführen:
+
+----
+ee/
+├── mischpult.kicad_pro          Projekt
+├── mischpult.kicad_sch          Wurzelblatt: nur Blattsymbole und Verbindungen zwischen den Blättern
+├── mischpult.kicad_pcb          Layout (eine Datei)
+├── sheets/
+│   ├── power.kicad_sch          9V-Eingang, PD, DC-DC, Erkennung
+│   ├── controller.kicad_sch     Buchsenleisten fürs DevKit, USB-Zugang, JTAG-Pads
+│   ├── fader.kicad_sch          Fader und Motortreiber (ggf. ein Blatt pro Kanal)
+│   ├── haptic.kicad_sch         LRA und Treiber
+│   ├── display.kicad_sch        Display und Touch
+│   └── ui.kicad_sch             Taster und Inkrementalgeber
+├── lib/
+│   ├── symbols/                 pro Kategorie eine Datei, z.B. mischpult_ic.kicad_sym,
+│   │                            mischpult_conn.kicad_sym, mischpult_ui.kicad_sym
+│   ├── footprints/mischpult.pretty/   eine Datei pro Footprint
+│   └── 3d/                      3D-Modelle (STEP), eine Datei pro Teil
+└── out/                         erzeugte Dateien (Gerber, BOM, PDF), nicht versioniert
+----
+
+Regeln gegen Merge-Konflikte:
+
+* *Hierarchisches Schema:* Je Funktionsblock ein Blatt. Wer an der Haptik arbeitet, fasst die Stromversorgung nicht an. Das Wurzelblatt bleibt klein und ändert sich selten.
+* *Symbolbibliothek in mehreren Dateien* nach Kategorie, statt einer grossen Datei. Footprints liegen ohnehin einzeln.
+* *Das PCB ist eine Datei und lässt sich kaum zusammenführen.* Deshalb gilt: Das Layout wird nicht parallel in zwei Zweigen bearbeitet. Wer es ändert, gibt es vorher bekannt. Bei einem echten Konflikt zählt die Version eines Zweigs, der andere wiederholt seine Änderung.
+* *Nicht versioniert werden:* `*.lck`, `*-backups/`, `_autosave-*`, `fp-info-cache`, `*.kicad_prl` (persönliche Fensterlage), `out/`. Das kommt in eine `.gitignore`.
+* *Zeilenenden:* Die KiCad-Dateien bleiben unverändert (`-text` bzw. `eol=lf` in `.gitattributes`), STEP-Dateien gelten als binär. Verhindert, dass Windows die Dateien still umschreibt (Annahme: KiCad schreibt LF, nicht geprüft).
+* Die KiCad-Version ist festgelegt (siehe Offene Punkte), weil neue Versionen das Dateiformat umschreiben und das ganze Projekt als geändert erscheint.
+* Die Bibliotheken werden über `${KIPRJMOD}` relativ eingebunden. Keine absoluten Pfade, kein `C:` und kein `\\wsl...` in den Dateien.
+* Die Bibliotheken der Schicht 1 gehören zur KiCad-Installation (Windows) und werden nicht ins Repository kopiert. Ein Bauteil aus Schicht 1, das nicht passt, wird in Schicht 2 kopiert und dort geändert.
+
+[#ee-bib-baugroesse]
+=== Bauformen
+
+Regel: Die grösstmögliche Bauform nehmen, die Platz und Funktion zulassen.
+
+|===
+| Teil | Vorgabe | Grund
+
+| Widerstände und Kondensatoren
+| 1206, nur wo der Platz fehlt 0805. Nie kleiner.
+| Lesbar, lötbar, nachmessbar. Ein einheitliches Mass vereinfacht die Bibliothek.
+
+| ICs
+| Wenn die Wahl besteht: Durchsteck oder SOIC vor TSSOP vor QFN. QFN, BGA und Gehäuse ohne sichtbare Pins nur, wenn es keine Alternative gibt.
+| Bei Handlötung (Fallback) und zum Prüfen mit Tastspitze.
+
+| Steckverbinder, Fader, Inkrementalgeber, Taster
+| Durchsteck
+| Mechanisch belastet, also gelötet durch das PCB.
+
+| Elektrolyt- und grosse Kondensatoren
+| Gemäss Anforderung, bevorzugt Durchsteck oder grosse SMD-Formen
+|
+|===
+
+Folgen für die Bestückungsentscheidung:
+
+* *Bestellt bestückt:* Die Grösse spielt für das Löten keine Rolle, nur für Inspektion und Nacharbeit. Die Bauformen oben bleiben trotzdem, weil sie das spätere Messen und Reparieren erleichtern.
+* *Selbst gelötet:* Die Regel gilt strenger: kein QFN, keine Teile unter 1206 (Annahme zur Lötbarkeit, nicht geprüft).
+
+=== Pflichtfelder im Symbol
+
+Jedes Symbol der Schichten 1 und 2, das im Schema verwendet wird, trägt:
+
+|===
+| Feld | Inhalt
+
+| `Value`
+| Wert oder Bezeichnung (z.B. `10k`, `DRV2605L`)
+
+| `Footprint`
+| Footprint aus der Projektbibliothek oder aus Schicht 1
+
+| `Datasheet`
+| Link oder Dateiname des Datenblatts
+
+| `Manufacturer`
+| Hersteller
+
+| `MPN`
+| Herstellerteilenummer
+
+| `Fertiger_PN`
+| Bestellnummer beim gewählten Fertiger (z.B. LCSC-Nummer), leer bis der Fertiger festgelegt ist
+|===
+
+Aus den Feldern wird die Stückliste (xref:../glossary.adoc#BOM[BOM]) erzeugt. Ein Teil ohne `MPN` wird nicht bestellt.
+
+=== Aufnahme eines neuen Bauteils (Checkliste)
+
+. Datenblatt ablegen oder verlinken.
+. Bauteil nach Möglichkeit aus Schicht 1 nehmen. Nur wenn es dort fehlt, in Schicht 2 anlegen.
+. Symbol und Footprint aus Herstellerquelle oder Komponentenportal holen, nicht vom Footprint-Ersteller ungeprüft übernehmen.
+. Footprint gegen das Datenblatt prüfen: Rastermass, Padgrösse, Pin 1 markiert, Bauteilumriss in `F.Fab`, Platzbedarf in `F.CrtYd`.
+. 3D-Modell prüfen, wenn vorhanden. Sonst vermerken, dass es fehlt.
+. Pflichtfelder ausfüllen.
+. Im PCB-Editor einmal platzieren und mit dem Design-Rule-Check prüfen.
+
+=== Verfügbarkeit
+
+Die Verfügbarkeit wird nicht bei der Auswahl geprüft, sondern bei der Bestellung (Annahme, noch nicht an einem Fertiger durchgespielt):
+
+* Beim Fertiger wird die Stückliste hochgeladen, der Fertiger meldet fehlende oder knappe Teile.
+* Passive Standardteile wählt man aus dem ständig vorrätigen Sortiment des Fertigers. Bei Fertigern wie JLCPCB heisst das "Basic Parts" (Annahme zu Sortiment und Begriff, vor der Wahl des Fertigers zu bestätigen).
+* Spezielle Teile (Treiber, Wandler, Fader) werden einzeln bestätigt, bevor das Layout abgeschlossen ist. Ist ein Teil nicht lieferbar, wird nur dieser Eintrag in Schicht 2 ersetzt (Symbol, Footprint, Felder).
+* Ein KiCad-Plugin kann Lagerbestände im Schema anzeigen und die Bestellexporte erzeugen. Ob ein solches Plugin genutzt wird, entscheidet sich mit der Wahl des Fertigers. Bis dahin ist es nicht Teil des Konzepts.
+
+=== Offene Punkte
+
+* Fertiger und Bestückungsweg (bestückt oder selbst gelötet).
+* KiCad-Version festlegen und in xref:../sw/toolchain.adoc[Toolchain] eintragen, samt dem Zugriff auf das Repository aus Windows. Prüfen, ob der Netzwerkpfad der WSL für KiCad ausreicht (Geschwindigkeit, Sperrdateien).
+* `.gitignore` und `.gitattributes` für `ee/` schreiben.
+* Repository-Struktur (`ee/`) festlegen und in `AGENTS.md` nachführen. Das Blattschema (welche Funktionsblöcke) wird im EE-Design festgelegt.
+* Format der Verweise von Schema und Bibliothek auf EE-Spezifikationen, sobald diese IDs haben.
+* Ob das DevKit als Symbol mit 2 x 22 Pins und eigenem Footprint geführt wird. Das Pinout wird gegen die Waveshare-Unterlagen geprüft, siehe xref:../sw/toolchain.adoc#usb-wsl[Toolchain].

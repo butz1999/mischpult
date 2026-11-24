@@ -31,6 +31,7 @@ Die Struktur wird mit dem System Design festgelegt und hier nachgeführt. Bis da
 * Anwendung als Zephyr-Applikation, Tests mit Ztest unter `tests/`
 * Prototypen der Machbarkeitsphase unter `feasibility/`
 * Hilfsskripte unter `scripts/` (Installation der Voraussetzungen: `scripts/install-prerequisites.sh`, beschrieben in `doc/sw/toolchain.adoc`)
+* Elektronik (KiCad-Projekt, Schema in Blättern, eigene Bauteil-Bibliothek) unter `ee/`, Aufbau siehe `doc/ee/ee-design.adoc`. Der Speicherort für KiCad unter Windows ist noch offen (`doc/feasibility.adoc`, Kapitel KiCad und WSL). Bis zur Klärung `ee/` nicht anlegen.
 * `main.cpp` enthält möglichst keine Logik
 
 ## Zephyr-Regeln
