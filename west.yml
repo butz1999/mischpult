@@ -1,0 +1,23 @@
+# West manifest of the mischpult workspace.
+# Versions and module selection: doc/sw/toolchain.adoc, chapter "Zephyr-Version und Module".
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.4.2
+      import:
+        # Limits "west update" to the modules we need (Zephyr has 60+).
+        name-allowlist:
+          - hal_espressif # ESP32 HAL, WiFi, binary blobs
+          - hal_xtensa    # Xtensa core support
+          - picolibc      # default C library in Zephyr
+          - lvgl          # display
+          - mbedtls       # TLS
+          - mcuboot       # bootloader for OTA
+
+  self:
+    path: mischpult

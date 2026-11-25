@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#
+# Builds a Zephyr application of this repository for the target board.
+# Activates the workspace venv itself, so it works from any shell and directory.
+#
+# Usage: scripts/build <app> [extra "west build" arguments]
+#        scripts/build                 (lists the available apps)
+#
+# <app> is a directory name below feasibility/ (later also app/), e.g. "blink".
+# Output goes to <workspace>/build/<app>, outside of the repository.
+#
+# Examples:
+#   scripts/build blink
+#   scripts/build blink -p always      (clean rebuild)
+#
+# Environment override:
+#   BOARD   target board (default: esp32s3_devkitc/esp32s3/procpu)
+
+set -euo pipefail
+
+: "${BOARD:=esp32s3_devkitc/esp32s3/procpu}"
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace="$(dirname "$repo")"
+venv="$workspace/.venv"
+search_dirs=(feasibility)
+
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+list_apps() {
+  local d app
+  for d in "${search_dirs[@]}"; do
+    for app in "$repo/$d"/*/CMakeLists.txt; do
+      [[ -e "$app" ]] && printf '  %s (%s/)\n' "$(basename "$(dirname "$app")")" "$d"
+    done
+  done
+}
+
+if (( $# < 1 )); then
+  echo "Usage: scripts/build <app> [west build args]"
+  echo "Available apps:"
+  list_apps
+  exit 1
+fi
+
+name="$1"
+shift
+
+app_dir=""
+for d in "${search_dirs[@]}"; do
+  if [[ -f "$repo/$d/$name/CMakeLists.txt" ]]; then
+    app_dir="$repo/$d/$name"
+    break
+  fi
+done
+if [[ -z "$app_dir" ]]; then
+  echo "Unknown app: $name" >&2
+  echo "Available apps:" >&2
+  list_apps >&2
+  exit 1
+fi
+
+[[ -f "$venv/bin/activate" ]] || die "venv not found: $venv (run scripts/install-prerequisites.sh)"
+# shellcheck disable=SC1091
+source "$venv/bin/activate"
+
+# west needs to run inside the workspace to find .west.
+cd "$workspace"
+exec west build -b "$BOARD" "$app_dir" -d "$workspace/build/$name" "$@"

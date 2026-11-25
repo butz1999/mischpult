@@ -4,6 +4,8 @@ Machbarkeitsstudien mit Abnahmekriterien und Ergebnissen. Siehe xref:project.ado
 
 == Reihenfolge
 
+*Fokus:* Zuerst die Arbeit am Board (Vorstufe, dann Home-Assistant). Die Doku führt nur nach, was dabei belegt wird.
+
 Vorhanden ist bisher nur das Waveshare ESP32-S3-DEV-KIT-N8R8 (siehe xref:sw/toolchain.adoc#usb-wsl[toolchain.adoc]). Die Studien laufen in dieser Reihenfolge:
 
 . *Vorstufe (keine Studie):* Hello-World-Build für `native_sim` und für das DevKit. Belegt Boardname, C++23-Kconfig und Flashen unter WSL. Dazu die USB-Prüfung: Welche Geräte erscheinen unter WSL, funktioniert Konsole, und ist JTAG-Debuggen über die eine USB-Buchse des Boards möglich (Debuggen ist gefordert, siehe xref:requirements.adoc[Anforderungen]). Ein Scheitern von JTAG ist kein No-Go für den Controller, sondern führt zu einem externen Debug-Probe an GPIO39 bis 42.
@@ -16,10 +18,19 @@ Vorhanden ist bisher nur das Waveshare ESP32-S3-DEV-KIT-N8R8 (siehe xref:sw/tool
 . *LRA.*
 . *Gleichzeitiger Betrieb* von WLAN, LVGL und Regler, vor der PCB-Bestellung.
 
+== Ergebnisse
+
+=== Vorstufe (Stand 2026-11-25, teilweise)
+
+* *Belegt:* Boardname `esp32s3_devkitc/esp32s3/procpu` baut mit C++23 (`CONFIG_GLIBCXX_LIBCPP=y` nötig), Flashen unter WSL über den CH343 (`/dev/ttyACM0`) funktioniert, das Boot-Log kommt über die UART-Konsole, die RGB-LED (WS2812, GPIO38, per SPI-Treiber) blinkt. Details: xref:sw/toolchain.adoc[toolchain.adoc], Prototyp `feasibility/blink/`.
+* *Befund LED-Reihenfolge:* Die RGB-LED des Boards erwartet unter Zephyr die Byte-Reihenfolge Rot, Grün, Blau (`color-mapping <RED GREEN BLUE>`), nicht das übliche Grün, Rot, Blau. Gemessen mit einem inzwischen gelöschten Wegwerf-Test (Byte 1, 2, 3 einzeln an, nach zwei weissen Startblitzen, vom Benutzer beobachtet: Rot, Grün, Blau). Der Blink-Prototyp bestätigt es: Er zeigt die Farben richtig. Das deckt sich mit dem früheren PlatformIO-Projekt, das über den Arduino-Core ebenfalls R, G, B sendet. Ein früherer Befund "Blau, Rot, Grün" war falsch: Er beruhte auf der Drehrichtung der Farben in einer Endlosschleife ohne erkennbaren Startpunkt. Der Chip meldet beim Booten "SHA-256 comparison failed ... Attempting to boot anyway", das Image startet trotzdem (Ursache nicht untersucht, relevant für MCUboot).
+* *JTAG-Debuggen unter WSL:* Das native USB (`303a:1001`) lässt sich per `usbipd attach` einbinden. Espressif-OpenOCD verbindet darüber, findet beide Kerne, und der Xtensa-GDB des SDK hält die laufende Firmware an und zeigt einen Backtrace mit Quellzeilen. Damit ist JTAG auf diesem Board nutzbar, auch über USB/IP. Der Benutzer hat das manuelle Debuggen mit Hardware-Breakpoint am Gerät bestätigt (normale Breakpoints gehen im Flash nicht). Details und Einschränkungen: xref:sw/toolchain.adoc#usb-wsl[toolchain.adoc].
+* *Offen:* Debuggen aus VS Code, C++-Header `<span>` und `<expected>` im Zephyr-Build, `west twister` auf `native_sim`.
+
 == Offene Punkte
 
 * *Protokoll zu Home-Assistant:* Offen ist, ob MQTT, die ESPHome-Native-API oder die Home-Assistant-WebSocket-API verwendet wird. Annahme, nicht recherchiert: Zephyr bringt MQTT mit, die anderen beiden müssten selbst gebaut werden. Wird in der Home-Assistant-Studie entschieden und danach in den Anforderungen und im System Design nachgeführt.
-* *Abnahmekriterien der Studien:* Für keine Studie festgelegt. Als Nächstes die Home-Assistant-Studie. Dafür braucht es eine erreichbare Home-Assistant-Instanz, ob und wie sie bei dir läuft, ist nicht geklärt.
+* *Abnahmekriterien der Studien:* Für keine Studie festgelegt. Als Nächstes die Home-Assistant-Studie. Home-Assistant läuft im Heimnetz mit einem MQTT-Broker, es sind aber noch keine MQTT-Clients angeschlossen (Stand 2026-11-24, Angabe des Benutzers). MQTT mit Home-Assistant-Discovery ist deshalb der erste Weg der Studie. Offen: Zugangsdaten und Erreichbarkeit des Brokers vom ESP32-S3 aus.
 
 == KiCad und WSL
 

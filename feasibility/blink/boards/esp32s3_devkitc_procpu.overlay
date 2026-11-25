@@ -1,0 +1,49 @@
+/*
+ * WS2812B RGB LED of the Waveshare ESP32-S3-DEV-KIT-N8R8 on GPIO38.
+ *
+ * Why SPI: Zephyr 4.4.2 has no WS2812 driver for the ESP32 RMT peripheral.
+ * The SPI driver is portable and costs 1 byte of RAM per data bit, which is
+ * irrelevant for a single LED. Timing values follow the Zephyr sample
+ * samples/drivers/led/led_strip (esp32s3_devkitc_procpu_spi.overlay).
+ *
+ * GPIO38 comes from the board schematic (net "GPIO38 RGB_CTRL", LED1 WS2812B,
+ * doc/datasheets/esp32-s3-dev-kit-n8r8/).
+ */
+
+#include <zephyr/dt-bindings/led/led.h>
+
+&spi3 {
+	/* Workaround to support the WS2812 driver (same as in the Zephyr sample) */
+	line-idle-low;
+
+	led_strip: ws2812@0 {
+		compatible = "worldsemi,ws2812-spi";
+
+		reg = <0>; /* ignored, but needed by the SPI bindings */
+		spi-max-frequency = <6400000>;
+
+		chain-length = <1>;
+		spi-cpha;
+		spi-one-frame = <0xf0>; /* 11110000: 625 ns high, 625 ns low */
+		spi-zero-frame = <0xc0>; /* 11000000: 312.5 ns high, 937.5 ns low */
+		/* Measured on this board (see doc/feasibility.adoc): wire order is R, G, B,
+		 * not the usual WS2812 G, R, B. */
+		color-mapping = <LED_COLOR_ID_RED
+				 LED_COLOR_ID_GREEN
+				 LED_COLOR_ID_BLUE>;
+	};
+};
+
+&pinctrl {
+	spim3_default: spim3_default {
+		group2 {
+			pinmux = <SPIM3_MOSI_GPIO38>;
+		};
+	};
+};
+
+/ {
+	aliases {
+		led-strip = &led_strip;
+	};
+};

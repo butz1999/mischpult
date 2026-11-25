@@ -1,0 +1,69 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build: blink (debug)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/build",
+      "args": [
+        "blink",
+        "-d",
+        "build/blink-debug",
+        "--",
+        "-DEXTRA_CONF_FILE=debug.conf"
+      ],
+      "group": "build",
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "flash: blink (debug)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "source \"${workspaceFolder}/../.venv/bin/activate\" && cd \"${workspaceFolder}/..\" && west flash -d build/blink-debug --esp-device /dev/serial/by-id/usb-1a86_* && sleep 3"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "openocd: start",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "pkill -x openocd; echo 'Waiting for the native USB device (usbipd attach, up to 60 s) ...'; for i in $(seq 1 60); do ls /dev/serial/by-id/usb-Espressif_* >/dev/null 2>&1 && break; sleep 1; done; ls /dev/serial/by-id/usb-Espressif_* >/dev/null 2>&1 || { echo 'Error: native USB device not found. Is usbipd attach --auto-attach running for it?'; exit 1; }; sleep 3; OCD=\"$HOME/openocd-esp32/0.12.0-esp32-20260831\"; exec \"$OCD/bin/openocd\" -s \"$OCD/share/openocd/scripts\" -f \"${workspaceFolder}/../zephyr/boards/espressif/esp32s3_devkitc/support/openocd.cfg\" -c \"gdb breakpoint_override hard\""
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "openocd",
+        "pattern": {
+          "regexp": "^Error: (.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Open On-Chip Debugger",
+          "endsPattern": "Listening on port 3333 for gdb connections"
+        }
+      }
+    },
+    {
+      "label": "openocd: stop",
+      "type": "shell",
+      "command": "pkill -x openocd || true",
+      "problemMatcher": []
+    },
+    {
+      "label": "debug: prepare blink",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "build: blink (debug)",
+        "flash: blink (debug)",
+        "openocd: start"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

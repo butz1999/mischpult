@@ -5,7 +5,7 @@ Beschreibt die Entwicklungsumgebung für die Firmware: Werkzeuge, festgelegte Ve
 == Umgebung
 
 * Entwicklung unter xref:../glossary.adoc#WSL[WSL] (Ubuntu 24.04), alles im Linux-Dateisystem.
-* Zielplattform: Waveshare ESP32-S3-DEV-KIT-N8R8, siehe <<usb-wsl,USB-Kapitel>>. Der Boardname in Zephyr ist offen.
+* Zielplattform: Waveshare ESP32-S3-DEV-KIT-N8R8, siehe <<usb-wsl,USB-Kapitel>>. Boardname in Zephyr: `esp32s3_devkitc/esp32s3/procpu` (baut, am Gerät noch nicht geprüft).
 * Host-Tests laufen auf `native_sim`.
 
 == Werkzeuge und Versionen
@@ -25,8 +25,8 @@ Mindestversionen laut Zephyr Getting Started Guide (Ubuntu 24.04 und neuer). Die
 | Weitere apt-Pakete | | | `gperf`, `ccache`, `dfu-util`, `wget`, `curl`, `ca-certificates`, `xz-utils`, `file`, `make`, `libsdl2-dev`, `libmagic1`, `python3-tk`
 | Zephyr SDK | 1.0.1 | 1.0.1 | Skript, `~/zephyr-sdk/v1.0.1`
 | Compiler (Ziel) | | GCC 14.3.0 | im SDK, Toolchain `xtensa-espressif_esp32s3_zephyr-elf`
-| `west` | offen | | Skript, in der venv (im Testlauf 1.5.0)
-| Zephyr | `v4.4.2` | | festgelegt, siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>. Die `west.yml` und der Download fehlen noch
+| `west` | offen | 1.5.0 | Skript, in der venv
+| Zephyr | `v4.4.2` | `v4.4.2` | `west.yml` im Repository, Workspace per `west update` (flache Klone), siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>
 | `usbipd-win` | offen | 5.3.0 | Windows-Seite, manuell, siehe <<usb-wsl,USB unter WSL>>
 |===
 
@@ -106,26 +106,25 @@ Weitere Optionen: `--skip-python` und `--skip-sdk`. Pfade und Versionen lassen s
 
 *Nicht geprüft:* Der `apt`-Schritt auf einem wirklich jungfräulichen System (auf dem Entwicklungsrechner ist fast alles schon installiert) sowie `arm64`.
 
-Noch offen und nicht Teil des Skripts, entsteht in der xref:../feasibility.adoc[Machbarkeitsphase]:
+Nicht Teil des Skripts, entsteht in der xref:../feasibility.adoc[Machbarkeitsphase]:
 
-* Zephyr-Workspace anlegen (`west init`, `west update`). Braucht die `west.yml` dieses Repositorys.
-* Zephyr-Python-Abhängigkeiten installieren (`west packages pip --install`) und `west zephyr-export`. Beides laut Zephyr Getting Started Guide, noch nicht ausgeführt.
+* Zephyr-Workspace anlegen, ausgeführt am 2026-11-25 aus dem Workspace-Ordner mit aktiver venv: `west init -l mischpult`, `west update --narrow -o=--depth=1` (rund eine Minute), `west packages pip --install`, `west zephyr-export`. Alle vier liefen ohne Fehler. Die flachen Klone haben keine Tag-Historie (`git describe` findet nichts), `west list` zeigt `v4.4.2`.
 * Binäre Treiberblobs des ESP32 für WLAN holen (`west blobs fetch hal_espressif`), siehe <<_zephyr_version_und_module,Zephyr-Version und Module>>.
 * USB-Zugriff auf das Board unter WSL, Flashen und Debuggen: Entwurf in <<usb-wsl,USB, Flashen und Debuggen unter WSL>>, am Gerät noch nicht geprüft.
 
 == Zephyr-Version und Module
 
-Entschieden, aber noch nicht umgesetzt (die `west.yml` ist noch nicht geschrieben, nichts davon wurde gebaut):
+Entschieden und in der `west.yml` umgesetzt. Gebaut wurde bisher nur der Prototyp `feasibility/blink` (siehe Befehle):
 
 * *Version:* Zephyr `v4.4.2`, ein Release-Tag und nicht `main`. Laut dem https://github.com/zephyrproject-rtos/sdk-ng/wiki/Zephyr-Version-Compatibility[SDK-Kompatibilitäts-Wiki] gehört SDK 1.0.x zu Zephyr 4.4.x. `v4.4.2` ist der letzte Patch dieser Linie (Stand 2026-11-23, per `git ls-remote` geprüft). `v4.5.0` existiert bereits, das passende SDK 1.1.x noch nicht. Ein Wechsel ist ein Tag-Wechsel in der `west.yml`, sobald es erscheint.
 * *Einbindung:* Das Repository ist das Manifest-Repository (`west.yml` im Repository, Zephyr per `import`). Damit `west update` nicht über 60 Module lädt, begrenzt eine `name-allowlist` die Module.
-* *Startmenge der Module:* `hal_espressif` (Treiber, WLAN, Blobs), `hal_xtensa` (Xtensa-Kern), `lvgl` (Display), `mbedtls` (TLS), `mcuboot` (Bootloader für OTA). Das ist eine Annahme. Der erste Build zeigt, was fehlt. Weitere Module (z.B. `littlefs`, `hostap`) kommen erst dazu, wenn eine Studie sie braucht.
+* *Startmenge der Module:* `hal_espressif` (Treiber, WLAN, Blobs), `hal_xtensa` (Xtensa-Kern), `lvgl` (Display), `mbedtls` (TLS), `mcuboot` (Bootloader für OTA), `picolibc` (C-Bibliothek, Zephyr-Standard). Der Blink-Build kam mit dieser Menge aus (ohne WLAN, LVGL und MCUboot geprüft). Weitere Module (z.B. `littlefs`, `hostap`) kommen erst dazu, wenn eine Studie sie braucht.
 * *Binärblobs:* Der WLAN-Stack des ESP32-S3 braucht binäre Teile von Espressif. Sie sind akzeptiert, mit diesen Regeln:
 ** Die Blobs werden nie ins Repository eingecheckt, nur per `west blobs fetch hal_espressif` im Workspace geholt.
 ** Sie erscheinen in der Software-BOM mit Version, Herkunft und Lizenz. Die Lizenz ist noch nicht geprüft.
 ** Sie sind ein dokumentierter Abstrich bei der Cyber-Security. Sicherheitskorrekturen kommen nur von Espressif, ein neuer Stand wird per OTA eingespielt.
 ** Wird der Blob unhaltbar (Hersteller stellt Pflege ein, schwere ungepatchte Lücke), ist die Folge ein anderer Controller. Software und Fachlogik sind dank Devicetree und hardwareunabhängiger Logik übertragbar (Annahme), das PCB nicht. Deshalb muss die Machbarkeit vor der PCB-Bestellung belegen, dass WLAN, LVGL und Regler gleichzeitig laufen, siehe xref:../feasibility.adoc[Machbarkeit].
-* *Boardname:* Das Waveshare-Board ist kein Espressif-DevKitC-1, hat aber laut Waveshare dessen Pinbelegung. Möglicher Kandidat ist deshalb `esp32s3_devkitc` (nicht im Zephyr-Quellbaum geprüft, ob LED, Taster und USB zum Board passen, ist offen). Laut Doku gibt es Snippets für PSRAM. Bei Octal-PSRAM sind die GPIOs 35 bis 37 intern belegt (Quelle: Espressif, nicht geprüft). Das ist für die Pin-Planung des PCB relevant.
+* *Boardname:* Das Waveshare-Board ist kein Espressif-DevKitC-1, hat aber laut Waveshare dessen Pinbelegung. Der Name `esp32s3_devkitc/esp32s3/procpu` existiert im Zephyr-Quellbaum und baut. Das Boardfile definiert keine RGB-LED, nur den BOOT-Taster an GPIO0. Die WS2812 hängt laut Schaltplan (`doc/datasheets/`) an GPIO38 und wird per Overlay ergänzt. Konsole ist UART0 (CH343P über U0TXD/U0RXD laut Schaltplan). Laut Doku gibt es Snippets für PSRAM. Bei Octal-PSRAM sind die GPIOs 35 bis 37 intern belegt (Quelle: Espressif, nicht geprüft). Das ist für die Pin-Planung des PCB relevant.
 
 [#usb-wsl]
 == USB, Flashen und Debuggen unter WSL
@@ -142,7 +141,7 @@ WSL2 ist eine VM und sieht kein USB-Gerät von Windows. `usbipd-win` reicht einz
 | Kernel-Module | `usbip-core`, `vhci-hcd` (8 Ports), `cdc-acm`, `cp210x`, `ftdi_sio` vorhanden (als Module)
 | systemd in WSL | aktiv (`/etc/wsl.conf`)
 | Benutzer | in den Gruppen `dialout` und `plugdev`
-| Angeschlossenes Board | nicht geprüft, es war kein Gerät eingebunden (`/dev/ttyACM*` und `/dev/ttyUSB*` fehlen)
+| Angeschlossenes Board | 2026-11-25 geprüft (`usbipd list`): zwei Geräte an einer Buchse, `3-2` CH343 (`1a86:55d3`) und `3-1` natives USB (`303a:1001`, "USB JTAG/serial debug unit"). Der CH343 wurde per `usbipd attach` eingebunden und erscheint als `/dev/ttyACM0` (CDC-ACM) und unter `/dev/serial/by-id/`. Das native USB wurde mit `usbipd attach --wsl --busid 3-1` eingebunden (der Befehl braucht keine Adminrechte und lief auch aus der WSL über `usbipd.exe`). Es erscheint als `/dev/ttyACM1` (CDC) plus ein herstellerspezifisches Interface 2 (Klasse 255), das ist die JTAG-Schnittstelle
 |===
 
 === Entscheide
@@ -162,14 +161,14 @@ Laut Waveshare hat das Board *eine* USB-C-Buchse. Die Chips CH343 (USB-UART) und
 | Schnittstelle | USB-ID | Linux-Gerät | Verwendung
 
 | CH343 (UART)
-| nicht angegeben, üblich `1a86:55d3` (Annahme)
-| `/dev/ttyACM*` oder `/dev/ttyUSB*` (Annahme, per `/dev/serial/by-id/` zuordnen)
-| Log-Konsole, Flashen mit `esptool`
+| `1a86:55d3` (gemessen)
+| `/dev/ttyACM0` (gemessen, per `/dev/serial/by-id/` zuordnen)
+| Log-Konsole und Flashen mit `esptool`, beides geprüft
 
 | Natives USB des ESP32-S3
-| `303a:1001` falls USB-Serial/JTAG (Annahme)
-| `/dev/ttyACM*`
-| Flashen, Konsole, JTAG-Debuggen (nur wenn JTAG vorhanden)
+| `303a:1001` (gemessen, Windows nennt es "USB JTAG/serial debug unit")
+| `/dev/ttyACM1` (gemessen) plus JTAG-Interface (Klasse 255, gemessen)
+| Flashen, Konsole, JTAG-Debuggen. Ob OpenOCD darüber verbindet, ist offen
 |===
 
 Folgen für das Vorgehen:
@@ -214,12 +213,14 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="303a", ATTR{idProduct}=="1001", MODE="0660", 
 +
 Danach `sudo udevadm control --reload && sudo udevadm trigger` und das Gerät neu einbinden.
 
+Messung 2026-11-25: Die eingebundenen USB-Geräte erscheinen in der WSL als `/dev/bus/usb/001/00x` mit den Rechten `crw-rw-rw-`. Eine udev-Regel ist damit vermutlich nicht nötig. Ob das nach einem Neustart oder Neueinbinden gleich bleibt, ist nicht geprüft. Entfällt die Regel, entfällt auch die Ausnahme von der Regel "`sudo` nur für `apt`".
+
 Das ist die einzige Stelle, an der `sudo` ausserhalb von `apt` vorkommt (Systemdatei in `/etc`). Das Installationsskript legt die Regel bewusst nicht an. Die Regel wird erst festgeschrieben, wenn sie am Gerät bestätigt ist.
 
 === Flashen und Konsole
 
-* Flashen: `west flash` (Runner `esptool`, das Image kommt aus dem Build-Ordner). Mit mehreren Geräten den Port angeben, z.B. `west flash --esp-device /dev/serial/by-id/<CH343-Eintrag>` (Option nicht geprüft).
-* Konsole: `west espressif monitor` (nicht geprüft) oder `picocom -b 115200 /dev/serial/by-id/<CH343-Eintrag>`.
+* Flashen: `west flash -d <Build-Ordner> --esp-device /dev/ttyACM0` (Runner `esp32` mit `esptool` 5.3.1). Geprüft am 2026-11-25 mit dem Blink-Prototyp über den CH343: 137428 Bytes geschrieben, Hash verifiziert, automatischer Reset über RTS ohne Tasten. `--esp-device` mit dem `by-id`-Pfad ist nicht geprüft.
+* Konsole: UART0 über den CH343 mit 115200 Baud. Geprüft: Das Boot-Log von Zephyr erscheint (gelesen mit `pyserial`). `west espressif monitor` und `picocom` sind nicht geprüft.
 * Fehlerbild "Gerät nicht gefunden" oder "Port busy": prüfen, ob `usbipd attach` noch läuft und das Gerät nicht von Windows belegt ist.
 
 === VS Code
@@ -227,13 +228,41 @@ Das ist die einzige Stelle, an der `sudo` ausserhalb von `apt` vorkommt (Systemd
 Ablauf: VS Code läuft unter Windows als Oberfläche, die Erweiterungen und alle Werkzeuge laufen in der WSL.
 
 . Erweiterung *WSL* (`ms-vscode-remote.remote-wsl`) in Windows installieren.
-. Aus der WSL im Repository `code .` aufrufen (oder "WSL: Connect to WSL" und den Ordner `~/git/mischpult-workspace` öffnen). Den *Workspace-Ordner* öffnen, nicht nur das Repository, damit Zephyr-Quellen für IntelliSense auffindbar sind.
+. Aus der WSL im Repository `code .` aufrufen (oder "WSL: Connect to WSL" und den Ordner `~/git/mischpult-workspace/mischpult` öffnen). Es muss der *Repository-Ordner* sein, denn nur dort liegt `.vscode/`. Die Zephyr-Quellen daneben liegen dann ausserhalb des geöffneten Ordners (Auswirkung auf IntelliSense nicht geprüft).
 . Erweiterungen *in WSL* installieren (Schaltfläche "In WSL installieren"): `ms-vscode.cpptools` (C/C++ und Debugger `cppdbg`), `ms-vscode.cmake-tools` ist nicht nötig, `west` ersetzt es. Für die Konsole optional `ms-vscode.vscode-serial-monitor`. Er sieht die Geräte der WSL (nicht geprüft).
 . IntelliSense: `west build` erzeugt `compile_commands.json` im Build-Ordner. `C_Cpp.default.configurationProvider` bzw. `compileCommands` in `c_cpp_properties.json` zeigt darauf.
 . Build, Flash und Monitor als `tasks.json` mit den `west`-Befehlen aus dem Kapitel Befehle. Die Befehle stehen nur dort, die Tasks rufen sie auf.
 . Die venv muss aktiv sein. Am einfachsten startet man `code .` aus einer Shell, in der die venv aktiviert ist, oder setzt in `settings.json` `python.defaultInterpreterPath` auf `<Workspace>/.venv/bin/python` und aktiviert sie in den Tasks per `source`.
 
-Dateien unter `.vscode/` gehören zum Repository, sobald sie bestätigt sind. Sie enthalten keine persönlichen Pfade (relativ zu `${workspaceFolder}`, keine festen Home-Verzeichnisse).
+Die Dateien unter `.vscode/` gehören zum Repository und gelten nur für dieses Projekt, nicht systemweit. Sie enthalten keinen Benutzernamen (`${workspaceFolder}`, `${userHome}`, `$HOME`).
+
+==== Voraussetzungen für die Debug-Sitzung
+
+Die Dateien setzen das Folgende voraus. Es steht nicht in ihnen:
+
+|===
+| Voraussetzung | Ort / Hinweis
+
+| Repository liegt im Workspace
+| `~/git/mischpult-workspace/mischpult`. Die Dateien nutzen `${workspaceFolder}/..` für `.venv`, `build/` und `zephyr/`.
+
+| Zephyr SDK mit GDB
+| `~/zephyr-sdk/v1.0.1`, Pfad in `launch.json` (bei einem SDK-Wechsel anpassen)
+
+| OpenOCD (Espressif)
+| `~/openocd-esp32/0.12.0-esp32-20260831`, Pfad in `tasks.json` (bei einem Versionswechsel anpassen). Installation siehe Abschnitt Debuggen
+
+| Erweiterungen in der WSL
+| `ms-vscode.cpptools` (Debugger `cppdbg`)
+
+| USB eingebunden
+| `usbipd attach --auto-attach` läuft in PowerShell für beide Geräte (CH343 und natives USB). Ohne das findet die OpenOCD-Task das Gerät nicht (sie wartet bis zu 60 s)
+
+| Nur für `blink`
+| Die Konfiguration verweist fest auf `feasibility/blink` und `build/blink-debug`. Eine weitere Anwendung braucht eine eigene Konfiguration oder eine Verallgemeinerung
+|===
+
+Ablauf: Der grüne Pfeil startet die Konfiguration aus `launch.json`. Sie ruft vorher die Task `debug: prepare blink` aus `tasks.json` auf (Build, Flash, OpenOCD) und danach `openocd: stop`. Tasks lassen sich auch einzeln starten.
 
 === Debuggen
 
@@ -244,11 +273,26 @@ VS Code (cppdbg) --> xtensa-...-gdb --TCP 3333--> OpenOCD --libusb--> usbipd -->
          (alles in der WSL)                                     (Windows)
 ----
 
-* *OpenOCD:* Es braucht die Espressif-Variante (`openocd-esp32`), der Upstream-Stand kennt den ESP32-S3 nur teilweise (Annahme). Sie ist nicht im Zephyr SDK enthalten (im SDK-Ordner nicht gefunden). Installationsort nach der Regel von oben: benutzerweit, `~/openocd-esp32/<Version>/`. Version und Download-Prüfsumme werden festgelegt, wenn sie installiert wird. Das Installationsskript kennt OpenOCD noch nicht.
-* *GDB:* der des Zephyr SDK, `xtensa-espressif_esp32s3_zephyr-elf-gdb` unter `~/zephyr-sdk/v1.0.1/` (Pfad nicht geprüft).
+* *OpenOCD:* Es braucht die Espressif-Variante (`openocd-esp32`), der Upstream-Stand kennt den ESP32-S3 nur teilweise (Annahme). Sie ist nicht im Zephyr SDK enthalten (im SDK-Ordner nicht gefunden). Installiert am 2026-11-25: `v0.12.0-esp32-20260831` (Release vom 2026-09-03) aus `openocd-esp32-linux-amd64-0.12.0-esp32-20260831.tar.gz` von https://github.com/espressif/openocd-esp32/releases[GitHub], nach `~/openocd-esp32/0.12.0-esp32-20260831/` (benutzerweit, `sudo` nicht nötig). Die SHA-256 `89dcf8ef...6e5a` stimmt mit der Release-Datei `*-checksum.sha256` und mit der GitHub-API überein (beides aus demselben Release, schützt vor beschädigtem Download, nicht vor einem kompromittierten Release). Das Installationsskript kennt OpenOCD noch nicht.
+* *GDB:* der des Zephyr SDK (GDB 16.2), `~/zephyr-sdk/v1.0.1/gnu/xtensa-espressif_esp32s3_zephyr-elf/bin/xtensa-espressif_esp32s3_zephyr-elf-gdb`.
+* *Geprüft am 2026-11-25 (Blink-Prototyp, natives USB per `usbipd attach` eingebunden):*
+** `openocd -s <Install>/share/openocd/scripts -f board/esp32s3-builtin.cfg` verbindet über USB/IP, findet beide Kerne (`esp32s3.cpu0`, `cpu1`, IDCODE `0x120034e5`) und startet den GDB-Server auf Port 3333.
+** `xtensa-espressif_esp32s3_zephyr-elf-gdb zephyr.elf`, dann `target remote :3333` hält den laufenden Chip an und zeigt Backtrace mit Quellzeilen (`arch_cpu_idle`, `idle`, `z_thread_entry`).
+** `target extended-remote :3333` schlug fehl ("Remote replied unexpectedly to 'vMustReplyEmpty'", Verbindung abgebrochen), `target remote` funktioniert. Die Ursache ist nicht untersucht. Die `launch.json` muss entsprechend `target remote` nutzen.
+** Vom Benutzer am Gerät bestätigt (manuelle Sitzung, zwei Terminals): Das Debuggen mit OpenOCD und GDB funktioniert. Ein Hardware-Breakpoint (`hbreak main`) hielt bei `main.cpp:32` an, GDB zeigte Quelldatei und Zeile.
+** Ein normaler Breakpoint (`break main`) scheitert ("address 0x420004a8 not writable ... Failed to add SW breakpoint"), weil der Code im Flash liegt. Es muss `hbreak` oder `thbreak` sein. Es gibt nur wenige Hardware-Breakpoints (2 laut Espressif, nicht gemessen).
+** Nach `target remote :3333` steht der Chip, die Firmware läuft erst nach `continue` oder `detach` weiter (LED blinkt solange nicht). OpenOCD setzt den Chip beim Verbinden zurück.
+** Das USB-Gerät geht beim Zurücksetzen verloren, wenn `usbipd attach` ohne `--auto-attach` lief ("Remote connection closed" in GDB). Mit `--auto-attach` für beide Geräte vermeiden.
+** OpenOCD mit der Zephyr-Konfiguration starten (`-f ~/git/mischpult-workspace/zephyr/boards/espressif/esp32s3_devkitc/support/openocd.cfg`, setzt `ESP_RTOS Zephyr` und `ESP_ONLYCPU 1`). Mit `board/esp32s3-builtin.cfg` meldet OpenOCD "RTOS FreeRTOS not detected", das Anhalten geht trotzdem. Die Warnungen zur Partitionstabelle ("Unknown magic number", "Could not get flash mapping") erscheinen bei Zephyr ohne MCUboot, sie stören bisher nicht (Annahme).
+** Nicht geprüft: Einzelschritt und Variablen im Detail, `west debug`, Debuggen aus VS Code, Zephyr-Thread-Ansicht, Verhalten beim Flashen über das native USB.
 * *Zephyr-Weg:* `west debug` und `west debugserver` starten OpenOCD und GDB mit den Einstellungen des Boards (Runner `openocd`, Aufruf mit `--openocd <Pfad>`, nicht geprüft). Das ist der erste Test, vor jeder VS-Code-Konfiguration.
 * *VS Code:* Eine `launch.json` vom Typ `cppdbg` mit `miDebuggerPath` auf den Xtensa-GDB, `miDebuggerServerAddress` `localhost:3333` und `program` auf `build/zephyr/zephyr.elf`. Den Debug-Server startet eine Task (`west debugserver`) als `preLaunchTask`. Cortex-Debug ist für ARM gedacht und hier nicht die erste Wahl. Die Espressif-IDF-Erweiterung zielt auf ESP-IDF, nicht auf Zephyr.
 * *Build für Debug:* `CONFIG_DEBUG_OPTIMIZATIONS=y` und `CONFIG_DEBUG_THREAD_INFO=y` (Thread-Ansicht im Debugger, Zephyr-Doku, nicht geprüft). Das gehört in ein eigenes Konfigurations-Overlay, nicht in `prj.conf`.
+* *VS-Code-Dateien (vom Benutzer bestätigt: F5 hält in `main` und an einem eigenen Breakpoint):* `.vscode/tasks.json` und `.vscode/launch.json` im Repository, für den Blink-Prototyp. Die Debug-Sitzung "Debug blink (OpenOCD, ESP32-S3)" führt zuerst die Task `debug: prepare blink` aus (Debug-Build mit `debug.conf` nach `build/blink-debug`, Flashen über den CH343 per `/dev/serial/by-id/usb-1a86_*`, OpenOCD mit der Zephyr-Konfiguration im Hintergrund). Danach verbindet `cppdbg` mit `localhost:3333`, setzt Reset-Halt (kein Haltepunkt bei `main` mehr, der `thbreak main` ist entfernt), Hardware-Breakpoints sind erzwungen (`hardwareBreakpoints`, Limit 2). `openocd: stop` beendet OpenOCD nach der Sitzung. Beide USB-Geräte müssen eingebunden sein, die OpenOCD-Version steht im Pfad der Task.
+* *Geprüft ohne VS Code (Shell, 2026-11-25):* Debug-Build, Flashen per `by-id`-Pfad, OpenOCD-Start mit Zephyr-Konfiguration (Startmeldung passt zum Muster der Task) und eine GDB-Sitzung mit Reset-Halt, `thbreak main`, `next`, Thread-Liste. GDB zeigt die Zephyr-Threads (`main`, `logging`, `idle`).
+* *Flash-Breakpoints (gelöst, Shell-Test):* GDB und `cppdbg` setzen von sich aus normale Breakpoints (VS Code z.B. `-break-insert -f main`) und interne Haltepunkte beim Einzelschritt. Im Flash scheitern sie ("Cannot insert breakpoint", OpenOCD bricht die Verbindung ab, GDB meldet "Remote connection closed"). OpenOCD mit `-c "gdb breakpoint_override hard"` starten, dann wird jeder davon zum Hardware-Breakpoint. Damit ging in der Shell `break main` und `next` über einen Funktionsaufruf. Es bleiben nur wenige Hardware-Breakpoints (2 laut Espressif), mehr gleichzeitig gehen nicht. Ursache war vermutlich das fehlende Flash-Mapping in OpenOCD (nicht bestätigt).
+* *Timing nach dem Flashen:* Der Chip meldet sich nach dem Flashen neu am USB an, das native USB-Gerät fehlt einige Sekunden, bis `usbipd attach --auto-attach` es wieder einbindet. OpenOCD darf erst danach starten. Die Tasks warten deshalb auf `/dev/serial/by-id/usb-Espressif_*`.
+* *Bekannte Einschränkung:* Einzelschritt (`next`) durch Code, der in die ROM-Funktionen des Chips springt, verliert die Zeile ("Cannot find bounds of current function", ROM-Code hat keine Symbole). OpenOCD meldete dabei "Only size_t of 4 bytes are supported", Ursache nicht untersucht.
 
 Bekannte Einschränkungen (Annahmen aus der Espressif-Dokumentation, nicht gemessen):
 
@@ -266,8 +310,8 @@ Macht USB/IP Probleme (Abbrüche, Timing), bleibt Flashen von der Windows-Seite:
 * Board einstecken und die Tabelle "Der USB-Anschluss des Boards" gegen `usbipd list`, `lsusb` und `/dev/serial/by-id/` prüfen. Waveshare-FAQ und Schaltplan (Resources) lesen: CH334-Rolle, USB-IDs, Auto-Reset, JTAG.
 * `west flash` und Konsole über beide Schnittstellen (CH343, nativ) prüfen, inklusive Verhalten nach Reset.
 * Prüfen, ob JTAG auf diesem Board erreichbar ist (`lsusb` zeigt `303a:1001`, OpenOCD verbindet).
-* OpenOCD-Variante, Version und Installationsort festlegen, `west debug` prüfen, danach `launch.json`.
-* udev-Regel bestätigen und dokumentieren, `.vscode/` ins Repository.
+* `west debug` prüfen und `launch.json` für VS Code schreiben (mit `target remote` und `hbreak`). Das manuelle Debuggen ist am Gerät bestätigt.
+* udev-Regel: vermutlich nicht nötig (siehe oben), nach einem Neustart bestätigen. `.vscode/` ins Repository.
 * Board-Name festlegen (siehe oben), alle Runner-Aussagen hängen daran.
 
 == C++
@@ -275,17 +319,26 @@ Macht USB/IP Probleme (Abbrüche, Timing), bleibt Flashen von der Windows-Seite:
 * Ziel ist C++23, Rückfall ist C++20 (siehe `AGENTS.md`).
 * Ausnahmen (Exceptions) und RTTI sind ausgeschaltet.
 * Geprüft: Der `g++` der Toolchain übersetzt eine Datei mit `std::expected`, `std::to_underlying`, `std::span` und `std::byteswap` mit `-std=c++23 -fno-exceptions -fno-rtti`. Das war nur ein Übersetzungstest, kein Zephyr-Build.
-* Nicht geprüft: Kconfig-Optionen (`CONFIG_CPP`, `CONFIG_STD_CPP23`) und das Verhalten der Standardbibliothek in einem Zephyr-Build.
+* Geprüft (Blink-Prototyp, nur gebaut): `CONFIG_CPP=y`, `CONFIG_STD_CPP23=y` ergeben `-std=c++23 -fno-exceptions -fno-rtti`. Mit der Standardeinstellung (minimale C++-Bibliothek) fehlt `<array>`. Es braucht `CONFIG_GLIBCXX_LIBCPP=y` (volle `libstdc++` des SDK). Das gehört in jede C++-Anwendung.
+* Nicht geprüft: `<span>`, `<expected>` im Zephyr-Build, Laufzeitverhalten und Platzbedarf der `libstdc++`.
 
 == Befehle
 
-Entwurf, noch nicht geprüft. Die Befehle werden bestätigt, sobald der Workspace steht.
+Mit aktiver venv (`source ~/git/mischpult-workspace/.venv/bin/activate`), der Befehl für den Blink-Build lief aus dem Repository-Ordner `~/git/mischpult-workspace/mischpult`. Gebaut und geflasht ist nur der Blink-Prototyp (auf Hardware beobachtet), `west twister` ist nicht geprüft.
+
+Kurzform: `scripts/build <app>` aktiviert die venv selbst, baut `feasibility/<app>` für das Board (Standard `esp32s3_devkitc/esp32s3/procpu`, überschreibbar mit `BOARD`) nach `<Workspace>/build/<app>` und reicht weitere Argumente an `west build` durch. Ohne Argument listet es die Anwendungen. Geprüft: `scripts/build blink` baut den Blink-Prototyp, aus einem Repository-Ordner gestartet.
 
 [source,bash]
 ----
+# Geprüft (gebaut): Blink-Prototyp, Ausgabe ausserhalb des Repositorys
+west build -p always -b esp32s3_devkitc/esp32s3/procpu feasibility/blink -d ../build/blink
+
+# Geprüft (geflasht, LED blinkt): Board über usbipd eingebunden, CH343 als /dev/ttyACM0
+west flash -d build/blink --esp-device /dev/ttyACM0
+
+# Entwurf, nicht geprüft:
 west build -b <board> <app>
 west twister -p native_sim -T tests
-west flash
 west blobs fetch hal_espressif   # WLAN-Blobs, nach west update
 ----
 

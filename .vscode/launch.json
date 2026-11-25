@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug blink (OpenOCD, ESP32-S3)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/../build/blink-debug/zephyr/zephyr.elf",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${userHome}/zephyr-sdk/v1.0.1/gnu/xtensa-espressif_esp32s3_zephyr-elf/bin/xtensa-espressif_esp32s3_zephyr-elf-gdb",
+      "miDebuggerServerAddress": "localhost:3333",
+      "hardwareBreakpoints": {
+        "require": true,
+        "limit": 2
+      },
+      "stopAtEntry": false,
+      "logging": {
+        "engineLogging": true
+      },
+      "setupCommands": [
+        {
+          "description": "Longer timeout for USB/IP",
+          "text": "set remotetimeout 30",
+          "ignoreFailures": false
+        }
+      ],
+      "preLaunchTask": "debug: prepare blink",
+      "postDebugTask": "openocd: stop",
+      "postRemoteConnectCommands": [
+        {
+          "description": "Reset and halt the chip",
+          "text": "-interpreter-exec console \"monitor reset halt\"",
+          "ignoreFailures": false
+        }
+      ]
+    }
+  ]
+}
