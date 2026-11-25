@@ -230,7 +230,7 @@ Ablauf: VS Code läuft unter Windows als Oberfläche, die Erweiterungen und alle
 . Erweiterung *WSL* (`ms-vscode-remote.remote-wsl`) in Windows installieren.
 . Aus der WSL im Repository `code .` aufrufen (oder "WSL: Connect to WSL" und den Ordner `~/git/mischpult-workspace/mischpult` öffnen). Es muss der *Repository-Ordner* sein, denn nur dort liegt `.vscode/`. Die Zephyr-Quellen daneben liegen dann ausserhalb des geöffneten Ordners (Auswirkung auf IntelliSense nicht geprüft).
 . Erweiterungen *in WSL* installieren (Schaltfläche "In WSL installieren"): `ms-vscode.cpptools` (C/C++ und Debugger `cppdbg`), `ms-vscode.cmake-tools` ist nicht nötig, `west` ersetzt es. Für die Konsole optional `ms-vscode.vscode-serial-monitor`. Er sieht die Geräte der WSL (nicht geprüft).
-. IntelliSense: `west build` erzeugt `compile_commands.json` im Build-Ordner. `C_Cpp.default.configurationProvider` bzw. `compileCommands` in `c_cpp_properties.json` zeigt darauf.
+. IntelliSense: `west build` erzeugt `compile_commands.json` im Build-Ordner. `.vscode/c_cpp_properties.json` (Konfiguration "Zephyr (blink)") zeigt mit `compileCommands` darauf (`build/blink/compile_commands.json`) und nutzt den Xtensa-`g++` aus dem SDK als `compilerPath`. Einmalig "C/C++: Select a Configuration" wählen. Vom Benutzer bestätigt: Die roten Wellen unter den Zephyr-Includes verschwinden, F12 springt in die Zephyr-Header. Es muss vorher gebaut worden sein (`scripts/build blink`). Die Konfiguration gilt nur für `blink`. Devicetree-Aliase wie `led_strip` in `DT_ALIAS(led_strip)` löst F12 nicht auf, sie sind Makros und stehen nur in der `.overlay` und in der erzeugten `build/blink/zephyr/zephyr.dts`.
 . Build, Flash und Monitor als `tasks.json` mit den `west`-Befehlen aus dem Kapitel Befehle. Die Befehle stehen nur dort, die Tasks rufen sie auf.
 . Die venv muss aktiv sein. Am einfachsten startet man `code .` aus einer Shell, in der die venv aktiviert ist, oder setzt in `settings.json` `python.defaultInterpreterPath` auf `<Workspace>/.venv/bin/python` und aktiviert sie in den Tasks per `source`.
 
@@ -253,13 +253,13 @@ Die Dateien setzen das Folgende voraus. Es steht nicht in ihnen:
 | `~/openocd-esp32/0.12.0-esp32-20260831`, Pfad in `tasks.json` (bei einem Versionswechsel anpassen). Installation siehe Abschnitt Debuggen
 
 | Erweiterungen in der WSL
-| `ms-vscode.cpptools` (Debugger `cppdbg`)
+| `ms-vscode.cpptools` (IntelliSense und Debugger `cppdbg`)
 
 | USB eingebunden
 | `usbipd attach --auto-attach` läuft in PowerShell für beide Geräte (CH343 und natives USB). Ohne das findet die OpenOCD-Task das Gerät nicht (sie wartet bis zu 60 s)
 
 | Nur für `blink`
-| Die Konfiguration verweist fest auf `feasibility/blink` und `build/blink-debug`. Eine weitere Anwendung braucht eine eigene Konfiguration oder eine Verallgemeinerung
+| Die Konfigurationen verweisen fest auf `feasibility/blink`, `build/blink-debug` (Debuggen) und `build/blink` (IntelliSense). Eine weitere Anwendung braucht eine eigene Konfiguration oder eine Verallgemeinerung
 |===
 
 Ablauf: Der grüne Pfeil startet die Konfiguration aus `launch.json`. Sie ruft vorher die Task `debug: prepare blink` aus `tasks.json` auf (Build, Flash, OpenOCD) und danach `openocd: stop`. Tasks lassen sich auch einzeln starten.
