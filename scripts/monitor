@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+#
+# Shows the serial console (Zephyr log) of the board through the CH343 USB-UART
+# bridge. Activates the workspace venv itself, so it works from any shell and
+# directory.
+#
+# Usage: scripts/monitor
+#
+# Ctrl+X exits (the default Ctrl+] needs AltGr on a Swiss keyboard).
+# Ctrl+T opens the miniterm menu. ANSI colors of the Zephyr log are passed
+# through unchanged (--filter direct), otherwise miniterm would replace the ESC
+# character by a visible symbol.
+#
+# Environment override:
+#   PORT   serial port (default: the CH343 found under /dev/serial/by-id/usb-1a86_*)
+#   BAUD   baud rate (default: 115200)
+#
+# WSL: the board must be attached with usbipd first, see scripts/flash.
+
+set -euo pipefail
+
+: "${BAUD:=115200}"
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace="$(dirname "$repo")"
+venv="$workspace/.venv"
+
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+port="${PORT:-}"
+if [[ -z "$port" ]]; then
+  shopt -s nullglob
+  candidates=(/dev/serial/by-id/usb-1a86_*)
+  shopt -u nullglob
+  if (( ${#candidates[@]} == 0 )); then
+    {
+      echo "ERROR: CH343 serial port not found (/dev/serial/by-id/usb-1a86_*)."
+      echo "The board is probably not attached to WSL. In PowerShell (Windows):"
+      echo "  usbipd list                                   # find the BUSID of 1a86:55d3"
+      echo "  usbipd attach --wsl --busid <BUSID> --auto-attach"
+      echo "Or set PORT=/dev/... to use another port."
+    } >&2
+    exit 1
+  fi
+  if (( ${#candidates[@]} > 1 )); then
+    printf 'ERROR: more than one CH343 found, set PORT to one of:\n' >&2
+    printf '  %s\n' "${candidates[@]}" >&2
+    exit 1
+  fi
+  port="${candidates[0]}"
+fi
+
+[[ -f "$venv/bin/activate" ]] || die "venv not found: $venv (run scripts/install-prerequisites.sh)"
+# shellcheck disable=SC1091
+source "$venv/bin/activate"
+
+echo "Monitor on $port at $BAUD baud. Ctrl+X exits."
+exec python -m serial.tools.miniterm --filter direct --exit-char 24 "$port" "$BAUD"

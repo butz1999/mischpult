@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+#
+# Flashes a built Zephyr application to the board through the CH343 USB-UART
+# bridge. Activates the workspace venv itself, so it works from any shell and
+# directory.
+#
+# Usage: scripts/flash <build> [extra "west flash" arguments]
+#        scripts/flash                 (lists the available builds)
+#
+# <build> is a directory name below <workspace>/build, e.g. "blink" or
+# "blink-debug" (see scripts/build). "west flash" rebuilds first if needed.
+#
+# Environment override:
+#   PORT   serial port (default: the CH343 found under /dev/serial/by-id/usb-1a86_*)
+#
+# WSL: the board must be attached with usbipd first (PowerShell, no admin needed
+# after the one-time bind): usbipd attach --wsl --busid <BUSID> --auto-attach
+# The BUSID of the CH343 (VID:PID 1a86:55d3) is shown by "usbipd list".
+
+set -euo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace="$(dirname "$repo")"
+venv="$workspace/.venv"
+build_root="$workspace/build"
+
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+list_builds() {
+  local d
+  for d in "$build_root"/*/; do
+    [[ -f "${d}build.ninja" ]] && printf '  %s\n' "$(basename "$d")"
+  done
+}
+
+if (( $# < 1 )); then
+  echo "Usage: scripts/flash <build> [west flash args]"
+  echo "Available builds:"
+  list_builds
+  exit 1
+fi
+
+name="$1"
+shift
+
+if [[ ! -f "$build_root/$name/build.ninja" ]]; then
+  echo "Unknown build: $name (build it first with scripts/build)" >&2
+  echo "Available builds:" >&2
+  list_builds >&2
+  exit 1
+fi
+
+port="${PORT:-}"
+if [[ -z "$port" ]]; then
+  shopt -s nullglob
+  candidates=(/dev/serial/by-id/usb-1a86_*)
+  shopt -u nullglob
+  if (( ${#candidates[@]} == 0 )); then
+    {
+      echo "ERROR: CH343 serial port not found (/dev/serial/by-id/usb-1a86_*)."
+      echo "The board is probably not attached to WSL. In PowerShell (Windows):"
+      echo "  usbipd list                                   # find the BUSID of 1a86:55d3"
+      echo "  usbipd attach --wsl --busid <BUSID> --auto-attach"
+      echo "Or set PORT=/dev/... to use another port."
+    } >&2
+    exit 1
+  fi
+  if (( ${#candidates[@]} > 1 )); then
+    printf 'ERROR: more than one CH343 found, set PORT to one of:\n' >&2
+    printf '  %s\n' "${candidates[@]}" >&2
+    exit 1
+  fi
+  port="${candidates[0]}"
+fi
+
+[[ -f "$venv/bin/activate" ]] || die "venv not found: $venv (run scripts/install-prerequisites.sh)"
+# shellcheck disable=SC1091
+source "$venv/bin/activate"
+
+# west needs to run inside the workspace to find .west.
+cd "$workspace"
+echo "Flashing build/$name via $port"
+exec west flash -d "$build_root/$name" --esp-device "$port" "$@"

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Gives the application its own log level option (CONFIG_BLINK_LOG_LEVEL).
+# Why: debug messages can then be switched on temporarily from prj.conf or
+# debug.conf without touching the source. At the normal level they cost nothing,
+# the compiler removes them.
+
+module = BLINK
+module-str = blink
+source "subsys/logging/Kconfig.template.log_config"
+
+source "Kconfig.zephyr"

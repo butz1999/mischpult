@@ -328,6 +328,10 @@ Mit aktiver venv (`source ~/git/mischpult-workspace/.venv/bin/activate`), der Be
 
 Kurzform: `scripts/build <app>` aktiviert die venv selbst, baut `feasibility/<app>` für das Board (Standard `esp32s3_devkitc/esp32s3/procpu`, überschreibbar mit `BOARD`) nach `<Workspace>/build/<app>` und reicht weitere Argumente an `west build` durch. Ohne Argument listet es die Anwendungen. Geprüft: `scripts/build blink` baut den Blink-Prototyp, aus einem Repository-Ordner gestartet.
 
+`scripts/flash <build>` flasht einen Build aus `<Workspace>/build/<build>` (z.B. `blink` oder `blink-debug`) über den CH343. Es aktiviert die venv selbst, sucht den Port unter `/dev/serial/by-id/usb-1a86_*` (überschreibbar mit `PORT`) und meldet bei fehlendem Gerät, dass `usbipd attach` nötig ist. Ohne Argument listet es die vorhandenen Builds. Geprüft: Flashen von `blink` mit eingebundenem Board (Hash verifiziert), Meldung bei fehlendem Gerät (mit einer Testkopie, die nach einem nicht vorhandenen Gerät suchte), Liste und unbekannter Build.
+
+`scripts/monitor` zeigt die Konsole (Zephyr-Log, 115200 Baud) über den CH343 mit dem Terminal `miniterm` aus `pyserial` (in der venv). Beenden mit `Ctrl+X`, weil `Ctrl+]` auf der Schweizer Tastatur AltGr braucht. `--filter direct` reicht die ANSI-Farbcodes des Logs unverändert durch, sonst ersetzt `miniterm` das ESC-Zeichen durch ein sichtbares Symbol. `PORT` und `BAUD` sind überschreibbar. Geprüft: in einem Pseudo-Terminal startet es, zeigt das Log mit rohen ESC-Bytes (16 gezählt, kein Ersatzsymbol) und beendet sich mit `Ctrl+X`. Die Farbdarstellung im echten Terminal hat der Benutzer noch nicht bestätigt.
+
 [source,bash]
 ----
 # Geprüft (gebaut): Blink-Prototyp, Ausgabe ausserhalb des Repositorys
@@ -335,12 +339,23 @@ west build -p always -b esp32s3_devkitc/esp32s3/procpu feasibility/blink -d ../b
 
 # Geprüft (geflasht, LED blinkt): Board über usbipd eingebunden, CH343 als /dev/ttyACM0
 west flash -d build/blink --esp-device /dev/ttyACM0
+# Kurzform (geprüft): scripts/flash blink
 
 # Entwurf, nicht geprüft:
 west build -b <board> <app>
 west twister -p native_sim -T tests
 west blobs fetch hal_espressif   # WLAN-Blobs, nach west update
 ----
+
+== Logging
+
+Regeln für das Logging stehen in `AGENTS.md` (Zephyr-Regeln). Technik und Einstellungen:
+
+* *Deferred Logging (Zephyr-Standard):* `LOG_*` legt die Meldung nur in einen Puffer (`CONFIG_LOG_BUFFER_SIZE`, 1024 Bytes). Ein eigener Thread `logging` gibt sie später auf die UART aus. Das hält den aufrufenden Code schnell. Der Zeitstempel in der Zeile stammt vom Aufruf, nicht von der Ausgabe.
+* *Wann der Log-Thread läuft:* Sobald `CONFIG_LOG_PROCESS_TRIGGER_THRESHOLD` (10) Meldungen im Puffer liegen, sonst nach `CONFIG_LOG_PROCESS_THREAD_SLEEP_MS`. Der Standard von 1000 ms lässt die Ausgabe gebündelt kommen. Im Prototyp `blink` steht `100`, damit sie fast in Echtzeit erscheint. Der Mehraufwand durch das häufigere Aufwachen (Strom) ist nicht gemessen.
+* *Puffer voll:* Bei `CONFIG_LOG_MODE_OVERFLOW=y` (so im Build) verwirft Zephyr die ältesten Meldungen. Bei einem Schwall von Meldungen können dadurch auch wichtige fehlen.
+* *Pegel pro Modul über Kconfig:* Die Anwendung hat eine eigene `Kconfig`-Datei, die `CONFIG_BLINK_LOG_LEVEL` erzeugt, und registriert das Modul mit `LOG_MODULE_REGISTER(blink, CONFIG_BLINK_LOG_LEVEL)`. Im normalen Build gilt der Standard (3, Info). `feasibility/blink/debug.conf` setzt `CONFIG_BLINK_LOG_LEVEL_DBG=y`, im Debug-Build sind `LOG_DBG`-Zeilen aktiv, im normalen Build entfernt sie der Compiler. Geprüft: Beide Builds laufen, `.config` zeigt 3 bzw. 4. Auf dem Board nicht beobachtet.
+* *Farben:* Zephyr sendet Rot für `LOG_ERR`, Gelb für `LOG_WRN`. `LOG_INF` und `LOG_DBG` haben keine Farbe, ausser `CONFIG_LOG_INFO_COLOR_GREEN` bzw. `CONFIG_LOG_DBG_COLOR_BLUE` sind gesetzt. Zum Lesen auf der Konsole `scripts/monitor`, siehe Kapitel Befehle.
 
 == Software-BOM
 

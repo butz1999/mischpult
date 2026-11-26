@@ -43,6 +43,7 @@ Die Struktur wird mit dem System Design festgelegt und hier nachgeführt. Bis da
 * Eigener Code allokiert nicht dynamisch. Kein `malloc`/`k_malloc`, kein `new`/`delete`, kein `alloca`, keine VLAs, keine STL-Container mit Heap (z.B. `std::vector`, `std::string`). Statische Zephyr-Mechanismen verwenden (`K_THREAD_DEFINE`, `K_MSGQ_DEFINE`, `K_MEM_SLAB_DEFINE`).
 * Ausnahme: Allokation nur beim Aufstarten, mit Begründung. Bibliotheken dürfen den Heap intern nutzen. Die Pool-Grösse wird dann bewusst per Kconfig festgelegt.
 * Rückgabewerte von Zephyr-APIs prüfen, Fehler loggen (`LOG_*`).
+* Logging sparsam: Fehler und Warnungen, dazu seltene Zustandswechsel auf Info-Ebene (z.B. WLAN oder MQTT verbunden). Nichts pro Zyklus und nie aus dem schnellen Regelkreis. Wiederholte Fehler beim Wechsel des Zustands loggen, nicht bei jedem Durchlauf. Ausführliche Meldungen sind `LOG_DBG`, nur temporär und über den Kconfig-Pegel des Moduls einschaltbar (Details: `doc/sw/toolchain.adoc`, Kapitel Logging).
 * Fehler in eigenem Code mit `std::expected<T, E>` zurückgeben, nicht mit Ausnahmen.
 * Neue Kconfig-Optionen und Devicetree-Overlays kurz begründen.
 
